@@ -1,18 +1,39 @@
 #!/usr/bin/python
 
 import os
+import re
+import json
 import os.path
 import zipfile
 import argparse
 import subprocess
 
 def parse_name(filename):
-    parts = filename.split(' - ')
-    return (parts[0], parts[1])
+    (dn, fn) = os.path.split(filename)
+    m = re.match(r'^(.+) - (.+) - (\d+) - MP3\.zip$', fn)
+    return {
+        'artist': m.group(1),
+        'album' : m.group(2),
+        'year'  : m.group(3)
+    }
 
-def dir_name(filename):
-    parsed = parse_name(filename)
-    return parsed[0].replace(' ', '_') + '_-_' + parsed[1].replace(' ', '_') + '/'
+def dir_name(album):
+    return album['artist'].replace(' ', '_') + '_-_' + album['album'].replace(' ', '_') + '/'
+
+def trackmeta(filelist):
+    res = []
+    for f in sorted(filelist):
+        m = re.match(r'^(\d+) - (.+) - (.+)\.mp3$', f)
+        if not m:
+            continue
+        res.append({
+            'num'   : int(m.group(1)),
+            'artist': m.group(2),
+            'track' : m.group(3),
+            'audio' : f
+        })
+
+    return res
 
 def run(args):
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -20,34 +41,46 @@ def run(args):
     if p.returncode != 0:
         raise RuntimeError('Subprocess failed w/ return code {0}, stderr:\n {1}')
 
+def write_meta(dirname, meta, dry_run=False):
+    if dry_run:
+        return
+
+    with open(os.path.join(dirname, 'ektobot.json'), 'w') as fh:
+        json.dump(meta, fh, indent=2, sort_keys=True)
+
 def unpack(archive, dry_run):
-    #print 'unpack', args
-    dirname = dir_name(archive)
+    album = parse_name(archive)
+    dirname = dir_name(album)
     if not dry_run:
         os.mkdir(dirname)
 
-    zipf = zipfile.ZipFile(archive, 'r')
-    print 'Extracting {0} to {1} ...'.format(archive, dirname)
-    if not dry_run:
-        zipf.extractall(dirname)
+    with zipfile.ZipFile(archive, 'r') as zipf:
+        print 'Extracting {0} to {1} ...'.format(archive, dirname)
+        if not dry_run:
+            zipf.extractall(dirname)
+        names = zipf.namelist()
+
+    album['tracks'] = trackmeta(names)
+    write_meta(dirname, album, dry_run)
 
     return dirname
 
-def videos(dirname, dry_run, outdir=None):
-    if not outdir:
-        outdir = dirname
+def videos(dirname, dry_run):
+    outdir = os.path.join(dirname, 'video')
     if not os.path.isdir(outdir):
         print 'Creating output directory {0}'
         os.mkdir(outdir)
 
-    files = os.walk(dirname).next()[2]
-    mp3s = sorted(filter(lambda f: f.endswith('.mp3'), files))
-    #mp3s = map(lambda f: os.path.join(dirname, f), mp3s)
+    with open(os.path.join(dirname, 'ektobot.json'), 'r') as fh:
+        meta = json.load(fh)
+
     cover = os.path.join(dirname, 'folder.jpg')
     if not os.path.exists(cover):
         raise RuntimeError('Cover {0} not found'.format(cover))
     print 'Using image {0} as a cover'.format(cover)
-    for infile in mp3s:
+
+    for (idx, trk) in enumerate(meta['tracks']):
+        infile = trk['audio']
         outfile = os.path.join(outdir, infile)
         outfile = outfile[:-3] + 'avi'
         infile = os.path.join(dirname, infile)
@@ -68,9 +101,13 @@ def videos(dirname, dry_run, outdir=None):
                 run(cmdline)
             else:
                 print ' '.join(cmdline)
+            meta['tracks'][idx]['video'] = os.path.basename(outfile)
         except:
             print 'Converting {0} failed'.format(infile)
             raise
+
+    meta['videodir'] = 'video'
+    write_meta(dirname, meta, False)
     print 'Done!'
 
 
