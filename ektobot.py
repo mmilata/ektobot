@@ -54,6 +54,8 @@ def read_meta(dirname):
     return meta
 
 def unpack(archive, dry_run):
+    #write to temporary directory first (album artist fallback to dir name)
+    #metadata: album artist + album name
     album = parse_name(archive)
     dirname = dir_name(album)
     if not dry_run:
@@ -65,7 +67,7 @@ def unpack(archive, dry_run):
             zipf.extractall(dirname)
         names = zipf.namelist()
 
-    album['tracks'] = trackmeta(names)
+    #album['tracks'] = trackmeta(names)
     write_meta(dirname, album, dry_run)
 
     return dirname
@@ -82,6 +84,7 @@ def videos(dirname, dry_run):
     print 'Using image {0} as a cover'.format(cover)
 
     meta = read_meta(dirname)
+    #id3 magic/trackmeta happens here
     for (idx, trk) in enumerate(meta['tracks']):
         infile = trk['audio']
         outfile = os.path.join(outdir, infile)
@@ -201,7 +204,8 @@ if __name__ == '__main__':
     parser_unpack.set_defaults(what='unpack')
 
     parser_videos = subparsers.add_parser('videos', help='convert audio files to yt-uploadable videos')
-    parser_videos.add_argument('dir', type=str, help='directory containing audio files')
+    parser_videos.add_argument('dir', type=str, help='directory containing audio files') #default = current
+    #output directory #default = dir/videos
     parser_videos.set_defaults(what='videos')
 
     parser_yt = subparsers.add_parser('youtube', help='upload videos to youtube.com')
