@@ -20,20 +20,17 @@ def parse_name(filename):
 def dir_name(album):
     return album['artist'].replace(' ', '_') + '_-_' + album['album'].replace(' ', '_') + '/'
 
-def trackmeta(filelist):
-    res = []
-    for f in sorted(filelist):
-        m = re.match(r'^(\d+) - (.+) - (.+)\.mp3$', f)
-        if not m:
-            continue
-        res.append({
-            'num'   : int(m.group(1)),
-            'artist': m.group(2),
-            'track' : m.group(3),
-            'audio' : f
-        })
+def trackmeta(f):
+    import eyeD3
 
-    return res
+    tag = eyeD3.tag.Mp3AudioFile(f).getTag()
+    return {
+        'num'   : tag.getTrackNum()[0],
+        'artist': tag.getArtist(),
+        'track' : tag.getTitle(),
+        'bpm'   : tag.getBPM(),
+        'year'  : tag.getYear()
+    }
 
 def run(args):
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -67,13 +64,12 @@ def unpack(archive, dry_run):
             zipf.extractall(dirname)
         names = zipf.namelist()
 
-    #album['tracks'] = trackmeta(names)
     write_meta(dirname, album, dry_run)
 
     return dirname
 
 def videos(dirname, dry_run):
-    outdir = os.path.join(dirname, 'video')
+    outdir = os.path.join(dirname, 'video') #TODO make outdir configurable
     if not os.path.isdir(outdir):
         print 'Creating output directory {0}'.format(outdir)
         os.mkdir(outdir)
@@ -83,13 +79,20 @@ def videos(dirname, dry_run):
         raise RuntimeError('Cover {0} not found'.format(cover))
     print 'Using image {0} as a cover'.format(cover)
 
-    meta = read_meta(dirname)
-    #id3 magic/trackmeta happens here
-    for (idx, trk) in enumerate(meta['tracks']):
-        infile = trk['audio']
+    meta = read_meta(dirname) #TODO what if there's no .json?
+    meta['tracks'] = []
+
+    (_, _, files) = next(os.walk(dirname))
+    for infile in sorted(files):
+        if not infile.endswith('.mp3'):
+            continue
+
         outfile = os.path.join(outdir, infile)
         outfile = outfile[:-3] + 'avi'
+        meta['tracks'].append(trackmeta(infile))
+        meta['tracks'][-1]['video'] = os.path.basename(outfile)
         infile = os.path.join(dirname, infile)
+
         print 'Converting {0} '.format(infile)
         print '        to {0} ...'.format(outfile)
         cmdline = ['ffmpeg',
@@ -107,13 +110,17 @@ def videos(dirname, dry_run):
                 run(cmdline)
             else:
                 print ' '.join(cmdline)
-            meta['tracks'][idx]['video'] = os.path.basename(outfile)
         except:
             print 'Converting {0} failed'.format(infile)
             raise
 
-    meta['videodir'] = 'video'
-    write_meta(dirname, meta, False)
+        #id3 = eyeD3.tag.Mp3AudioFile(f).getTag()
+        #print f, id3.getTrackNum()[0], id3.getArtist(), id3.getTitle(), id3.getBPM(), id3.getYear(), id3.getAlbum()
+        #print id3.getArtist('TPE1'), id3.getArtist('TPE2')
+
+    #meta['videodir'] = 'video'
+
+    write_meta(outdir, meta, False)
     print 'Done!'
 
 track_description = '''Artist: {artist}
@@ -206,6 +213,7 @@ if __name__ == '__main__':
     parser_videos = subparsers.add_parser('videos', help='convert audio files to yt-uploadable videos')
     parser_videos.add_argument('dir', type=str, help='directory containing audio files') #default = current
     #output directory #default = dir/videos
+    #TODO: parameter for video image
     parser_videos.set_defaults(what='videos')
 
     parser_yt = subparsers.add_parser('youtube', help='upload videos to youtube.com')
