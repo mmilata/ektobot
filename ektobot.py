@@ -39,7 +39,7 @@ def run(args):
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (out, err) = p.communicate()
     if p.returncode != 0:
-        raise RuntimeError('Subprocess failed w/ return code {0}, stderr:\n {1}')
+        raise RuntimeError('Subprocess failed w/ return code {0}, stderr:\n {1}'.format(p.returncode, err))
 
 def write_meta(dirname, meta, dry_run=False):
     if dry_run:
@@ -75,7 +75,7 @@ def unpack(archive, dry_run):
 def videos(dirname, dry_run):
     outdir = os.path.join(dirname, 'video')
     if not os.path.isdir(outdir):
-        print 'Creating output directory {0}'
+        print 'Creating output directory {0}'.format(outdir)
         os.mkdir(outdir)
 
     cover = os.path.join(dirname, 'folder.jpg')
