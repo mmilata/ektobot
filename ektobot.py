@@ -29,7 +29,8 @@ def trackmeta(f):
         'artist': tag.getArtist(),
         'track' : tag.getTitle(),
         'bpm'   : tag.getBPM(),
-        'year'  : tag.getYear()
+        'year'  : tag.getYear(),
+        'album' : tag.getAlbum()
     }
 
 def run(args):
@@ -81,17 +82,32 @@ def videos(dirname, dry_run, outdir, cover):
         raise RuntimeError('Cover {0} not found'.format(cover))
     print 'Using image {0} as a cover'.format(cover)
 
-    meta = read_meta(dirname) #TODO what if there's no .json?
-    meta['tracks'] = []
+    try:
+        meta = read_meta(dirname)
+        meta['tracks'] = []
+    except IOError:
+        # if there's no .json, read the album metadata from the first track
+        meta = None
 
     (_, _, files) = next(os.walk(dirname))
     for infile in sorted(files):
         if not infile.endswith('.mp3'):
             continue
 
+        tmeta = trackmeta(infile)
+        if not meta:
+            meta = {
+                'artist': tmeta['artist'],
+                'album' : tmeta['album'],
+                'year'  : tmeta['year'],
+                'tracks': []
+            }
+        # no need to write it to disk
+        del tmeta['album']
+
         outfile = os.path.join(outdir, infile)
         outfile = outfile[:-3] + 'avi'
-        meta['tracks'].append(trackmeta(infile))
+        meta['tracks'].append(tmeta)
         meta['tracks'][-1]['video'] = os.path.basename(outfile)
         infile = os.path.join(dirname, infile)
 
