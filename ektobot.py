@@ -52,7 +52,7 @@ def read_meta(dirname):
     return meta
 
 def unpack(archive, dry_run):
-    #write to temporary directory first (album artist fallback to dir name)
+    #TODO write to temporary directory first (album artist fallback to dir name)
     #metadata: album artist + album name
     album = parse_name(archive)
     dirname = dir_name(album)
@@ -108,7 +108,7 @@ def videos(dirname, dry_run, outdir, cover):
         outfile = os.path.join(outdir, infile)
         outfile = outfile[:-3] + 'avi'
         meta['tracks'].append(tmeta)
-        meta['tracks'][-1]['video'] = os.path.basename(outfile)
+        meta['tracks'][-1]['video_file'] = os.path.basename(outfile)
         infile = os.path.join(dirname, infile)
 
         print 'Converting {0} '.format(infile)
@@ -135,15 +135,25 @@ def videos(dirname, dry_run, outdir, cover):
     write_meta(outdir, meta, False)
     print 'Done!'
 
-track_description = '''Artist: {artist}
+ektoplazm_description = '''Artist: {artist}
 Track: {track}
 Album: {album}
 Track number: {trackno}
 
 Download the full album from Ektoplazm: {albumurl}'''
-#TODO: title
-#TODO: description [title, link to album on ektoplazm, free to download, mention ektoplazm]
-#TODO: playlists
+
+default_description = '''Artist: {artist}
+Track: {track}
+Album: {album}
+Track number: {trackno}
+
+Uploaded by ektobot http://github.com/mmilata/ektobot'''
+
+templates = {
+    'default'  : default_description,
+    'ektoplazm': ektoplazm_description
+}
+
 def ytupload(dirname, dry_run, email, passwd, url=None):
     import getpass
     import gdata.youtube
@@ -165,17 +175,16 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
 
     def yt_create_playlist(yt_service, title, description, ids):
         playlist = yt_service.AddPlaylist(title, description)
-        print playlist.feed_link
-        print playlist.id
-        print playlist.id.text
-        print playlist.link
-        playlist_uri = playlist.id.text
+        playlist_uri = playlist.feed_link[0].href #magic...
         for video_id in ids:
             playlist_entry = yt_service.AddPlaylistVideoEntryToPlaylist(playlist_uri, video_id)
 
-        pass
-
     meta = read_meta(dirname)
+    playlist_ids = []
+
+    desc_template = templates['default']
+    if url and 'ektoplazm.com' in url:
+        desc_template = templates['ektoplazm']
 
     if not email:
         email = raw_input('youtube login: ') #XXX ektobot42@gmail.com
@@ -192,26 +201,29 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
     yt_service.password = passwd
     yt_service.ProgrammaticLogin()
 
-    playlist_ids = []
-    yt_create_playlist(yt_service, 'test playlist', 'test description', [])
-    return
-
-    for (idx, trk) in enumerate(meta['tracks']):
-        filename = os.path.join(dirname, meta['videodir'], trk['video'])
+    for trk in meta['tracks']:
+        filename = os.path.join(dirname, trk['video_file'])
         title = '{0} - {1}'.format(trk['artist'], trk['track'])
-        description = track_description.format(
+        description = desc_template.format(
             artist = trk['artist'],
             track = trk['track'],
             album = meta['album'],
             trackno = trk['num'],
-            albumurl = url if url else 'http://www.ektoplazm.com/'
+            albumurl = url if url else 'http://www.example.org/' #'http://www.ektoplazm.com/'
         )
-        print 'Uploading {0} as {1} with description:\n>{2}<\n'.format(filename, title, description)
-        vid_id = yt_upload_video(yt_service, filename, title, description)
-        playlist_ids.append(vid_id)
-        break
+        print 'Uploading {0} as {1} with description:\n{2}\n'.format(filename, title, description)
+        if not dry_run:
+            vid_id = yt_upload_video(yt_service, filename, title, description)
+            playlist_ids.append(vid_id)
 
-    #yt_upload_video(yt_service, './v1.avi', 'test video', 'test description')
+    if meta['artist'] == 'VA':
+        pls_name = '{0} ({1})'.format(meta['album'], meta['year'])
+    else:
+        pls_name = '{0} - {1} ({2})'.format(meta['artist'], meta['album'], meta['year'])
+    pls_description = ''
+    print 'Creating playlist {0}'.format(pls_name)
+    if not dry_run:
+        yt_create_playlist(yt_service, pls_name, pls_description, playlist_ids)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='PROG')
@@ -223,7 +235,7 @@ if __name__ == '__main__':
     parser_unpack.set_defaults(what='unpack')
 
     parser_videos = subparsers.add_parser('videos', help='convert audio files to yt-uploadable videos')
-    parser_videos.add_argument('--image', type=str, help='album cover image (default cover.jpg)')
+    parser_videos.add_argument('--image', type=str, help='album cover image (default folder.jpg)')
     parser_videos.add_argument('--outdir', type=str, help='video output directory (default video)')
     parser_videos.add_argument('dir', type=str, help='directory containing audio files') #TODO make it optional?
     parser_videos.set_defaults(what='videos')

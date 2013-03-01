@@ -44,7 +44,7 @@ Example:
 
 ::
 
-    ektobot.py video .
+    ektobot.py videos .
 
 Converts all mp3 files in current directory to videos stored in subdirectory
 named ``video``.
