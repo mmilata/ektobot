@@ -1,10 +1,22 @@
+
+#######
 ektobot
-=======
+#######
 
 Tool for manipulating music albums. Written with mp3 archives from
 http://www.ektoplazm.com in mind.
 
-For detailed usage, run
+Written by b42 in 2013.
+
+requirements
+============
+
+Python library eyeD3 needs to be installed.
+
+subcommands
+===========
+
+For detailed optional argument explanation, run
 
 ::
 
@@ -41,3 +53,8 @@ youtube
 -------
 
 Does not work yet.
+
+license
+=======
+
+WTFPL.
