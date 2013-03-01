@@ -68,13 +68,15 @@ def unpack(archive, dry_run):
 
     return dirname
 
-def videos(dirname, dry_run):
-    outdir = os.path.join(dirname, 'video') #TODO make outdir configurable
+def videos(dirname, dry_run, outdir, cover):
+    if not outdir:
+        outdir = os.path.join(dirname, 'video')
     if not os.path.isdir(outdir):
         print 'Creating output directory {0}'.format(outdir)
         os.mkdir(outdir)
 
-    cover = os.path.join(dirname, 'folder.jpg')
+    if not cover:
+        cover = os.path.join(dirname, 'folder.jpg')
     if not os.path.exists(cover):
         raise RuntimeError('Cover {0} not found'.format(cover))
     print 'Using image {0} as a cover'.format(cover)
@@ -113,12 +115,6 @@ def videos(dirname, dry_run):
         except:
             print 'Converting {0} failed'.format(infile)
             raise
-
-        #id3 = eyeD3.tag.Mp3AudioFile(f).getTag()
-        #print f, id3.getTrackNum()[0], id3.getArtist(), id3.getTitle(), id3.getBPM(), id3.getYear(), id3.getAlbum()
-        #print id3.getArtist('TPE1'), id3.getArtist('TPE2')
-
-    #meta['videodir'] = 'video'
 
     write_meta(outdir, meta, False)
     print 'Done!'
@@ -211,9 +207,9 @@ if __name__ == '__main__':
     parser_unpack.set_defaults(what='unpack')
 
     parser_videos = subparsers.add_parser('videos', help='convert audio files to yt-uploadable videos')
-    parser_videos.add_argument('dir', type=str, help='directory containing audio files') #default = current
-    #output directory #default = dir/videos
-    #TODO: parameter for video image
+    parser_videos.add_argument('--image', type=str, help='album cover image (default cover.jpg)')
+    parser_videos.add_argument('--outdir', type=str, help='video output directory (default video)')
+    parser_videos.add_argument('dir', type=str, help='directory containing audio files') #TODO make it optional?
     parser_videos.set_defaults(what='videos')
 
     parser_yt = subparsers.add_parser('youtube', help='upload videos to youtube.com')
@@ -228,7 +224,7 @@ if __name__ == '__main__':
     if args.what == 'unpack':
         unpack(args.archive, args.dry_run)
     elif args.what == 'videos':
-        videos(args.dir, args.dry_run)
+        videos(args.dir, args.dry_run, args.outdir, args.image)
     elif args.what == 'youtube':
         ytupload(args.dir, args.dry_run, args.login, args.password, args.url)
     else:
