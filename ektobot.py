@@ -94,7 +94,7 @@ def videos(dirname, dry_run, outdir, cover):
         if not infile.endswith('.mp3'):
             continue
 
-        tmeta = trackmeta(infile)
+        tmeta = trackmeta(os.path.join(dirname, infile))
         if not meta:
             meta = {
                 'artist': tmeta['artist'],
@@ -241,7 +241,7 @@ if __name__ == '__main__':
     parser_videos.set_defaults(what='videos')
 
     parser_yt = subparsers.add_parser('youtube', help='upload videos to youtube.com')
-    parser_yt.add_argument('dir', type=str, help='directory containing subdirectory with videos')
+    parser_yt.add_argument('dir', type=str, help='directory containing the videos')
     parser_yt.add_argument('-l', '--login', type=str, help='youtube login (email)')
     parser_yt.add_argument('-p', '--password', type=str, help='youtube password')
     parser_yt.add_argument('-u', '--url', type=str, help='ektoplazm url of the album')
