@@ -154,8 +154,17 @@ templates = {
     'ektoplazm': ektoplazm_description
 }
 
-def ytupload(dirname, dry_run, email, passwd, url=None):
+def ask_email_password(email=None, passwd=None):
     import getpass
+    if not email:
+        email = raw_input('youtube login: ') #XXX ektobot42@gmail.com
+
+    if not passwd:
+        passwd = getpass.getpass('password: ')
+
+    return (email, passwd)
+
+def ytupload(dirname, dry_run, email, passwd, url=None):
     import gdata.youtube
     import gdata.youtube.service
 
@@ -186,11 +195,7 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
     if url and 'ektoplazm.com' in url:
         desc_template = templates['ektoplazm']
 
-    if not email:
-        email = raw_input('youtube login: ') #XXX ektobot42@gmail.com
-
-    if not passwd:
-        passwd = getpass.getpass('password: ')
+    (email, passwd) = ask_email_password(email, passwd)
 
     yt_service = gdata.youtube.service.YouTubeService()
     #yt_service.ssl = True
@@ -228,6 +233,8 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='PROG')
     parser.add_argument('-n', '--dry-run', action='store_true', help='do not write/upload anything')
+    parser.add_argument('-l', '--login', type=str, help='youtube login (email)')
+    parser.add_argument('-p', '--password', type=str, help='youtube password')
     subparsers = parser.add_subparsers(help='description', metavar='COMMAND', title='commands')
 
     parser_unpack = subparsers.add_parser('unpack', help='unpack .zip archive')
@@ -242,8 +249,6 @@ if __name__ == '__main__':
 
     parser_yt = subparsers.add_parser('youtube', help='upload videos to youtube.com')
     parser_yt.add_argument('dir', type=str, help='directory containing the videos')
-    parser_yt.add_argument('-l', '--login', type=str, help='youtube login (email)')
-    parser_yt.add_argument('-p', '--password', type=str, help='youtube password')
     parser_yt.add_argument('-u', '--url', type=str, help='ektoplazm url of the album')
     parser_yt.set_defaults(what='youtube')
 
