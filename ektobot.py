@@ -131,7 +131,7 @@ def videos(dirname, dry_run, outdir=None, cover=None):
         cmdline = ['ffmpeg',
                    '-loglevel', 'error', # be quiet
                    '-n',                 # do not overwrite output files
-                   '-loop_input',        # video = image
+                   '-loop', '1',         # video = image
                    '-i', cover,          # image
                    '-i', infile,         # audio
                    '-r', '1',            # 1fps
