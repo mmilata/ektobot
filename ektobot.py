@@ -51,11 +51,11 @@ def read_meta(dirname):
         meta = json.load(fh)
     return meta
 
-def unpack(archive, dry_run):
+def unpack(archive, dry_run, outdir='.'):
     #TODO write to temporary directory first (album artist fallback to dir name)
     #metadata: album artist + album name
     album = parse_name(archive)
-    dirname = dir_name(album)
+    dirname = os.path.join(outdir, dir_name(album))
     if not dry_run:
         os.mkdir(dirname)
 
@@ -69,7 +69,7 @@ def unpack(archive, dry_run):
 
     return dirname
 
-def videos(dirname, dry_run, outdir, cover):
+def videos(dirname, dry_run, outdir=None, cover=None):
     if not outdir:
         outdir = os.path.join(dirname, 'video')
     if not os.path.isdir(outdir):
