@@ -3,10 +3,22 @@
 import os
 import re
 import json
+import shutil
 import os.path
 import zipfile
 import argparse
+import tempfile
+import contextlib
 import subprocess
+
+@contextlib.contextmanager
+def TemporaryDir(name='tmp', keep=False):
+    dname = tempfile.mkdtemp(prefix=name+'.')
+    try:
+        yield dname
+    finally:
+        if not keep:
+            shutil.rmtree(dname)
 
 def parse_name(filename):
     (dn, fn) = os.path.split(filename)
