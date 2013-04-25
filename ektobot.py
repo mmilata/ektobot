@@ -253,7 +253,7 @@ def new_rss(url, outfile='ektobot.json'):
 
     write_meta('.', meta, False) #XXX use outfile arg
 
-def watch_rss(metafile, dry_run, email=None, passwd=None, sleep_interval=15*60):
+def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_interval=15*60):
     import feedparser
 
     def mp3_link(e):
@@ -271,7 +271,7 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, sleep_interval=15*60):
         for entry in feed.entries:
             if entry.link not in meta['albums']:
                 try:
-                    process_url(entry.link, mp3_link(entry), email, passwd)
+                    process_url(entry.link, mp3_link(entry), email, passwd, keep=keep)
                     meta['albums'][entry.link] = 'OK'
                 except KeyboardInterrupt:
                     raise
@@ -287,7 +287,7 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, sleep_interval=15*60):
 
     print meta
 
-def process_url(page_url, zip_url=None, email=None, passwd=None):
+def process_url(page_url, zip_url=None, email=None, passwd=None, keep=False):
 
     if not zip_url:
         html = urllib2.urlopen(page_url).read()
@@ -300,7 +300,7 @@ def process_url(page_url, zip_url=None, email=None, passwd=None):
 
     print 'Processing {0}'.format(page_url)
 
-    with TemporaryDir('ektobot', keep=True) as dname, \
+    with TemporaryDir('ektobot', keep=keep) as dname, \
             contextlib.closing(urllib2.urlopen(zip_url)) as inf:
         chunk_size = 8192
         total_size = int(inf.headers['content-length'])
@@ -336,6 +336,7 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--dry-run', action='store_true', help='do not write/upload anything')
     parser.add_argument('-l', '--login', type=str, help='youtube login (email)')
     parser.add_argument('-p', '--password', type=str, help='youtube password')
+    parser.add_argument('-k', '--keep-tempfiles', action='store_true', help='do not delete the downloaded and generated files')
     subparsers = parser.add_subparsers(help='description', metavar='COMMAND', title='commands')
 
     parser_unpack = subparsers.add_parser('unpack', help='unpack .zip archive')
@@ -364,7 +365,6 @@ if __name__ == '__main__':
 
     parser_url = subparsers.add_parser('url', help='process ektoplazm url - download album, convert to videos and upload to youtube')
     parser_url.add_argument('url', type=str, help='ektoplazm album url')
-    parser_url.add_argument('-k', '--keep-tempfiles', action='store_true', help='do not delete the downloaded and generated files')
     parser_url.set_defaults(what='url')
 
     args = parser.parse_args()
@@ -378,8 +378,8 @@ if __name__ == '__main__':
     elif args.what == 'rss-new':
         new_rss(args.url, args.output)
     elif args.what == 'rss':
-        watch_rss(args.meta, args.dry_run, email=args.login, passwd=args.password) #tmpdir, delete flag, sleep interval
+        watch_rss(args.meta, args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) #tmpdir, delete flag, sleep interval
     elif args.what == 'url':
-        process_url(args.url, zip_url=None, email=args.login, passwd=args.password) # metadata file, dry run?
+        process_url(args.url, zip_url=None, email=args.login, passwd=args.password, keep=args.keep_tempfiles) # metadata file, dry run?
     else:
         assert False
