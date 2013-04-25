@@ -255,7 +255,6 @@ def new_rss(url, outfile='ektobot.json'):
 
 def watch_rss(metafile, dry_run, email=None, passwd=None, sleep_interval=15*60):
     import feedparser
-    import IPython
 
     def mp3_link(e):
         for l in e.links:
@@ -274,6 +273,8 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, sleep_interval=15*60):
                 try:
                     process_url(entry.link, mp3_link(entry), email, passwd)
                     meta['albums'][entry.link] = 'OK'
+                except KeyboardInterrupt:
+                    raise
                 except:
                     print 'Album processing failed'
                     meta['albums'][entry.link] = 'FAIL'
