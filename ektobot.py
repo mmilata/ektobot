@@ -53,7 +53,7 @@ def run(args):
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (out, err) = p.communicate()
     if p.returncode != 0:
-        raise RuntimeError('Subprocess failed w/ return code {0}, stderr:\n {1}'.format(p.returncode, err))
+        raise RuntimeError(u'Subprocess failed w/ return code {0}, stderr:\n {1}'.format(p.returncode, err))
 
 def write_meta(dirname, meta, dry_run=False):
     if dry_run:
@@ -76,7 +76,7 @@ def unpack(archive, dry_run, outdir='.'):
         os.mkdir(dirname)
 
     with zipfile.ZipFile(archive, 'r') as zipf:
-        print 'Extracting {0} to {1} ...'.format(archive, dirname)
+        print u'Extracting {0} to {1} ...'.format(archive, dirname)
         if not dry_run:
             zipf.extractall(dirname)
 
@@ -99,14 +99,14 @@ def videos(dirname, dry_run, outdir=None, cover=None):
     if not outdir:
         outdir = os.path.join(dirname, 'video')
     if not os.path.isdir(outdir):
-        print 'Creating output directory {0}'.format(outdir)
+        print u'Creating output directory {0}'.format(outdir)
         os.mkdir(outdir)
 
     if not cover:
         cover = os.path.join(dirname, 'folder.jpg')
     if not os.path.exists(cover):
-        raise RuntimeError('Cover {0} not found'.format(cover))
-    print 'Using image {0} as a cover'.format(cover)
+        raise RuntimeError(u'Cover {0} not found'.format(cover))
+    print u'Using image {0} as a cover'.format(cover)
 
     try:
         meta = read_meta(dirname)
@@ -137,8 +137,8 @@ def videos(dirname, dry_run, outdir=None, cover=None):
         meta['tracks'][-1]['video_file'] = os.path.basename(outfile)
         infile = os.path.join(dirname, infile)
 
-        print 'Converting {0} '.format(infile)
-        print '        to {0} ...'.format(outfile)
+        print u'Converting {0} '.format(infile)
+        print u'        to {0} ...'.format(outfile)
         cmdline = ['ffmpeg',
                    '-loglevel', 'error', # be quiet
                    '-n',                 # do not overwrite output files
@@ -155,20 +155,20 @@ def videos(dirname, dry_run, outdir=None, cover=None):
             else:
                 print ' '.join(cmdline)
         except:
-            print 'Converting {0} failed'.format(infile)
+            print u'Converting {0} failed'.format(infile)
             raise
 
     write_meta(outdir, meta, False)
     print 'Done!'
 
-ektoplazm_description = '''Artist: {artist}
+ektoplazm_description = u'''Artist: {artist}
 Track: {track}
 Album: {album}
 Track number: {trackno}
 
 Download the full album from Ektoplazm: {albumurl}'''
 
-default_description = '''Artist: {artist}
+default_description = u'''Artist: {artist}
 Track: {track}
 Album: {album}
 Track number: {trackno}
@@ -233,7 +233,7 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
 
     for trk in meta['tracks']:
         filename = os.path.join(dirname, trk['video_file'])
-        title = '{0} - {1}'.format(trk['artist'], trk['track'])
+        title = u'{0} - {1}'.format(trk['artist'], trk['track'])
         description = desc_template.format(
             artist = trk['artist'],
             track = trk['track'],
@@ -241,7 +241,7 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
             trackno = trk['num'],
             albumurl = url if url else 'http://www.example.org/' #'http://www.ektoplazm.com/'
         )
-        print 'Uploading {0} as {1} with description:\n{2}\n'.format(filename, title, description)
+        print u'Uploading {0} as {1} with description:\n{2}\n'.format(filename, title, description)
         if not dry_run:
             vid_id = yt_upload_video(yt_service, filename, title, description)
             playlist_ids.append(vid_id)
@@ -249,11 +249,11 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
         time.sleep(60) # youtube's not happy when we're uploading too fast
 
     if meta['artist'] == 'VA':
-        pls_name = '{0} ({1})'.format(meta['album'], meta['year'])
+        pls_name = u'{0} ({1})'.format(meta['album'], meta['year'])
     else:
-        pls_name = '{0} - {1} ({2})'.format(meta['artist'], meta['album'], meta['year'])
+        pls_name = u'{0} - {1} ({2})'.format(meta['artist'], meta['album'], meta['year'])
     pls_description = ''
-    print 'Creating playlist {0}'.format(pls_name)
+    print u'Creating playlist {0}'.format(pls_name)
     if not dry_run:
         yt_create_playlist(yt_service, pls_name, pls_description, playlist_ids)
     print 'Playlist created'
@@ -310,7 +310,7 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
 
     (email, passwd) = ask_email_password(email, passwd)
 
-    print 'Processing {0}'.format(page_url)
+    print u'Processing {0}'.format(page_url)
 
     with TemporaryDir('ektobot', keep=keep) as dname, \
             contextlib.closing(urllib2.urlopen(zip_url)) as inf:
@@ -324,7 +324,7 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
         archive = os.path.join(dname, params['filename'])
 
         with open(archive, 'w') as outf:
-            print 'Download size {0}M, destination {1}'.format(total_size/1024/1024, archive)
+            print u'Download size {0}M, destination {1}'.format(total_size/1024/1024, archive)
 
             while True:
                 chunk = inf.read(chunk_size)
@@ -334,7 +334,7 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
 
                 read += len(chunk)
                 if read / step > (read-len(chunk)) / step:
-                    print '{0} %'.format(int(100.0*read/step/nsteps))
+                    print u'{0} %'.format(int(100.0*read/step/nsteps))
 
             print 'Download complete'
 
