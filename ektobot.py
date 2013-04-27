@@ -235,6 +235,8 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
         if not dry_run:
             vid_id = yt_upload_video(yt_service, filename, title, description)
             playlist_ids.append(vid_id)
+        print 'Upload complete'
+        time.sleep(60) # youtube's not happy when we're uploading too fast
 
     if meta['artist'] == 'VA':
         pls_name = '{0} ({1})'.format(meta['album'], meta['year'])
