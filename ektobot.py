@@ -11,6 +11,7 @@ import urllib2
 import zipfile
 import argparse
 import tempfile
+import traceback
 import contextlib
 import subprocess
 
@@ -278,6 +279,7 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
                 except KeyboardInterrupt:
                     raise
                 except:
+                    print traceback.format_exc()
                     print 'Album processing failed'
                     meta['albums'][entry.link] = 'FAIL'
                 write_meta('.', meta)
