@@ -284,7 +284,7 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
         for entry in feed.entries:
             if entry.link not in meta['albums']:
                 try:
-                    process_url(entry.link, mp3_link(entry), email, passwd, keep=keep)
+                    process_url(entry.link, mp3_link(entry), dry_run, email, passwd, keep=keep)
                     meta['albums'][entry.link] = 'OK'
                 except KeyboardInterrupt:
                     raise
@@ -301,7 +301,7 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
 
     print meta
 
-def process_url(page_url, zip_url=None, email=None, passwd=None, keep=False):
+def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, keep=False):
 
     if not zip_url:
         html = urllib2.urlopen(page_url).read()
@@ -343,7 +343,7 @@ def process_url(page_url, zip_url=None, email=None, passwd=None, keep=False):
         mp3_dir = unpack(archive, dry_run=False, outdir=dname)
         video_dir = os.path.join(dname, 'video')
         videos(mp3_dir, dry_run=False, outdir=video_dir, cover=None)
-        ytupload(video_dir, dry_run=False, email=email, passwd=passwd, url=page_url)
+        ytupload(video_dir, dry_run=dry_run, email=email, passwd=passwd, url=page_url)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='PROG')
@@ -392,8 +392,8 @@ if __name__ == '__main__':
     elif args.what == 'rss-new':
         new_rss(args.url, args.output)
     elif args.what == 'rss':
-        watch_rss(args.meta, args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) #tmpdir, delete flag, sleep interval
+        watch_rss(args.meta, args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) #tmpdir, sleep interval
     elif args.what == 'url':
-        process_url(args.url, zip_url=None, email=args.login, passwd=args.password, keep=args.keep_tempfiles) # metadata file, dry run?
+        process_url(args.url, zip_url=None, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) # metadata file
     else:
         assert False
