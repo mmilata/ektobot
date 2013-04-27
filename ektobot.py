@@ -204,7 +204,6 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
         )
 
         video_entry = gdata.youtube.YouTubeVideoEntry(media=media_group)
-        print 'Uploading video ...'
         new_entry = yt_service.InsertVideoEntry(video_entry, filename)
         return new_entry.id.text.split('/')[-1]
 
@@ -257,6 +256,7 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
     print 'Creating playlist {0}'.format(pls_name)
     if not dry_run:
         yt_create_playlist(yt_service, pls_name, pls_description, playlist_ids)
+    print 'Playlist created'
 
 def new_rss(url, outfile='ektobot.json'):
     meta = {
@@ -369,8 +369,8 @@ if __name__ == '__main__':
     parser_yt.set_defaults(what='youtube')
 
     parser_rss_new = subparsers.add_parser('rss-new', help='create metadata for rss feed')
-    parser_rss_new.add_argument('url', type=str, help='url of the feed')
     parser_rss_new.add_argument('-o', '--output', type=str, help='metadata file name')
+    parser_rss_new.add_argument('url', type=str, help='url of the feed')
     parser_rss_new.set_defaults(what='rss-new')
 
     parser_rss = subparsers.add_parser('rss', help='watch rss feed')
