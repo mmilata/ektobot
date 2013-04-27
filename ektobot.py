@@ -79,7 +79,17 @@ def unpack(archive, dry_run, outdir='.'):
         print 'Extracting {0} to {1} ...'.format(archive, dirname)
         if not dry_run:
             zipf.extractall(dirname)
-        names = zipf.namelist()
+
+    #fix archives with extra directory level
+    (_, dirs, files) = next(os.walk(dirname))
+    if len(dirs) == 1 and len(files) == 0:
+        print 'Extra directory level detected, removing ...'
+        nested_dir = os.path.join(dirname, dirs[0])
+        (_, dirs, files) = next(os.walk(nested_dir))
+        for f in dirs + files:
+            src = os.path.join(nested_dir, f)
+            shutil.move(src, dirname)
+        shutil.rmtree(nested_dir)
 
     write_meta(dirname, album, dry_run)
 
