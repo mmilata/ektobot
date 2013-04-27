@@ -131,7 +131,7 @@ def videos(dirname, dry_run, outdir=None, cover=None):
         # no need to write it to disk
         del tmeta['album']
 
-        outfile = os.path.join(outdir, infile)
+        outfile = os.path.join(outdir, infile.decode('utf-8', 'replace').encode('ascii', 'replace'))
         outfile = outfile[:-3] + 'avi'
         meta['tracks'].append(tmeta)
         meta['tracks'][-1]['video_file'] = os.path.basename(outfile)
@@ -298,8 +298,6 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
         except KeyboardInterrupt:
             print 'User requested exit'
             break
-
-    print meta
 
 def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, keep=False):
 
