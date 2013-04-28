@@ -305,6 +305,7 @@ def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=Fals
     assert meta.has_key('albums')
 
     urls = read_meta('.', filename=listfile)
+    (email, passwd) = ask_email_password(email, passwd)
 
     for url in urls:
         try:
