@@ -334,6 +334,9 @@ def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=Fals
     (email, passwd) = ask_email_password(email, passwd)
 
     for url in urls:
+        if url in meta['albums']:
+            continue
+
         try:
             process_url(url, None, dry_run, email, passwd, keep=keep)
             meta['albums'][url] = 'OK'
