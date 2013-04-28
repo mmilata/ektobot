@@ -95,6 +95,31 @@ def unpack(archive, dry_run, outdir='.'):
 
     return dirname
 
+def find_cover(dirname):
+    (_, __, files) = next(os.walk(dirname))
+
+    f_suffix = lambda f: (f.lower().endswith('.jpg') or f.lower().endswith('.png'))
+    files = filter(f_suffix, files)
+
+    patterns = [
+        r'^folder\.jpg$',
+        r'^cover\....$',
+        r'front\....$',
+        r'image 1',
+        r'cover',
+        r'front',
+    ]
+    for p in patterns:
+        for f in files:
+            if re.search(p, f, flags=re.IGNORECASE):
+                return os.path.join(dirname, f)
+
+    files.sort()
+    if files:
+        return os.path.join(dirname, files[0])
+
+    return None
+
 def videos(dirname, dry_run, outdir=None, cover=None):
     if not outdir:
         outdir = os.path.join(dirname, 'video')
@@ -103,8 +128,8 @@ def videos(dirname, dry_run, outdir=None, cover=None):
         os.mkdir(outdir)
 
     if not cover:
-        cover = os.path.join(dirname, 'folder.jpg')
-    if not os.path.exists(cover):
+        cover = find_cover(dirname)
+    if not cover or not os.path.exists(cover):
         raise RuntimeError(u'Cover {0} not found'.format(cover))
     print u'Using image {0} as a cover'.format(cover)
 
@@ -145,6 +170,7 @@ def videos(dirname, dry_run, outdir=None, cover=None):
                    '-loop', '1',         # video = image
                    '-i', cover,          # image
                    '-i', infile,         # audio
+                   '-vf', 'scale=min(800\,in_w):-1', # scale the image down to (at most) 800px width
                    '-r', '1',            # 1fps
                    '-acodec', 'copy',    # do not recode audio
                    '-shortest',          # stop when the audio stops
@@ -376,7 +402,7 @@ if __name__ == '__main__':
     parser_unpack.set_defaults(what='unpack')
 
     parser_videos = subparsers.add_parser('videos', help='convert audio files to yt-uploadable videos')
-    parser_videos.add_argument('--image', type=str, help='album cover image (default folder.jpg)')
+    parser_videos.add_argument('--image', type=str, help='album cover image')
     parser_videos.add_argument('--outdir', type=str, help='video output directory (default video)')
     parser_videos.add_argument('dir', type=str, help='directory containing audio files') #TODO make it optional?
     parser_videos.set_defaults(what='videos')
