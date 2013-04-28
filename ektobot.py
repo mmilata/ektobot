@@ -55,15 +55,15 @@ def run(args):
     if p.returncode != 0:
         raise RuntimeError(u'Subprocess failed w/ return code {0}, stderr:\n {1}'.format(p.returncode, err))
 
-def write_meta(dirname, meta, dry_run=False):
+def write_meta(dirname, meta, dry_run=False, filename='ektobot.json'):
     if dry_run:
         return
 
-    with open(os.path.join(dirname, 'ektobot.json'), 'w') as fh:
+    with open(os.path.join(dirname, filename), 'w') as fh:
         json.dump(meta, fh, indent=2, sort_keys=True)
 
-def read_meta(dirname):
-    with open(os.path.join(dirname, 'ektobot.json'), 'r') as fh:
+def read_meta(dirname, filename='ektobot.json'):
+    with open(os.path.join(dirname, filename), 'r') as fh:
         meta = json.load(fh)
     return meta
 
@@ -299,6 +299,25 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
             print 'User requested exit'
             break
 
+def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=False):
+
+    meta = read_meta('.') # use metafile arg
+    assert meta.has_key('albums')
+
+    urls = read_meta('.', filename=listfile)
+
+    for url in urls:
+        try:
+            process_url(url, None, dry_run, email, passwd, keep=keep)
+            meta['albums'][url] = 'OK'
+        except KeyboardInterrupt:
+            raise
+        except:
+            print traceback.format_exc()
+            print 'Album processing failed'
+            meta['albums'][url] = 'FAIL'
+        write_meta('.', meta)
+
 def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, keep=False):
 
     if not zip_url:
@@ -379,6 +398,11 @@ if __name__ == '__main__':
     parser_url.add_argument('url', type=str, help='ektoplazm album url')
     parser_url.set_defaults(what='url')
 
+    parser_list = subparsers.add_parser('list', help='process list of urls read from a file')
+    parser_list.add_argument('meta', type=str, help='metadata file (same as for rss)')
+    parser_list.add_argument('urls', type=str, help='json file with the url list')
+    parser_list.set_defaults(what='list')
+
     args = parser.parse_args()
     #print args
     if args.what == 'unpack':
@@ -393,5 +417,7 @@ if __name__ == '__main__':
         watch_rss(args.meta, args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) #tmpdir, sleep interval
     elif args.what == 'url':
         process_url(args.url, zip_url=None, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) # metadata file
+    elif args.what == 'list':
+        process_list(args.meta, args.urls, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles)
     else:
         assert False
