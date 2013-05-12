@@ -369,6 +369,7 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
         m = re.search(r'\<a href="([^"]+)"\>MP3 Download', html)
         assert m != None
         zip_url = m.group(1)
+        logger.debug(u'Found archive url: {0}'.format(zip_url))
 
     (email, passwd) = ask_email_password(email, passwd)
 
@@ -405,24 +406,24 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
         videos(mp3_dir, dry_run=False, outdir=video_dir, cover=None)
         ytupload(video_dir, dry_run=dry_run, email=email, passwd=passwd, url=page_url)
 
-def setup_logging(filename='ektobot.log'):
+def setup_logging(filename=None):
     fmt = logging.Formatter(
             fmt='%(asctime)s %(name)-8s %(levelname)-8s %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
+    root = logging.getLogger('')
+    root.setLevel(logging.DEBUG)
 
     log_stderr = logging.StreamHandler(sys.stderr)
     log_stderr.setFormatter(fmt)
     log_stderr.setLevel(logging.INFO)
-
-    log_file = logging.FileHandler(filename=filename)
-    log_file.setFormatter(fmt)
-    log_file.setLevel(logging.DEBUG)
-
-    root = logging.getLogger('')
     root.addHandler(log_stderr)
-    root.addHandler(log_file)
-    root.setLevel(logging.DEBUG)
+
+    if filename:
+        log_file = logging.FileHandler(filename=filename)
+        log_file.setFormatter(fmt)
+        log_file.setLevel(logging.DEBUG)
+        root.addHandler(log_file)
 
 
 if __name__ == '__main__':
@@ -431,6 +432,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--login', type=str, help='youtube login (email)')
     parser.add_argument('-p', '--password', type=str, help='youtube password')
     parser.add_argument('-k', '--keep-tempfiles', action='store_true', help='do not delete the downloaded and generated files')
+    parser.add_argument('-L', '--log-file', type=str, help='log file path')
     subparsers = parser.add_subparsers(help='description', metavar='COMMAND', title='commands')
 
     parser_unpack = subparsers.add_parser('unpack', help='unpack .zip archive')
@@ -467,7 +469,7 @@ if __name__ == '__main__':
     parser_list.set_defaults(what='list')
 
     args = parser.parse_args()
-    setup_logging()
+    setup_logging(args.log_file)
 
     if args.what == 'unpack':
         unpack(args.archive, args.dry_run)
