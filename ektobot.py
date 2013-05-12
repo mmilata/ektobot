@@ -19,11 +19,14 @@ import subprocess
 
 @contextlib.contextmanager
 def TemporaryDir(name='tmp', keep=False):
+    logger = logging.getLogger('tmpdir')
     dname = tempfile.mkdtemp(prefix=name+'.')
     try:
+        logger.debug('Created temporary directory {0}'.format(dname))
         yield dname
     finally:
         if not keep:
+            logger.debug('Deleting temporary directory {0}'.format(dname))
             shutil.rmtree(dname)
 
 def parse_name(filename):
@@ -408,7 +411,7 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
 
 def setup_logging(filename=None):
     fmt = logging.Formatter(
-            fmt='%(asctime)s %(name)-8s %(levelname)-8s %(message)s',
+            fmt='%(asctime)s %(name)-8s %(levelname)-7s %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
     root = logging.getLogger('')
@@ -470,20 +473,28 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     setup_logging(args.log_file)
+    logging.info('ektobot started')
 
-    if args.what == 'unpack':
-        unpack(args.archive, args.dry_run)
-    elif args.what == 'videos':
-        videos(args.dir, args.dry_run, args.outdir, args.image)
-    elif args.what == 'youtube':
-        ytupload(args.dir, args.dry_run, args.login, args.password, args.url)
-    elif args.what == 'rss-new':
-        new_rss(args.url, args.output)
-    elif args.what == 'rss':
-        watch_rss(args.meta, args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) #tmpdir, sleep interval
-    elif args.what == 'url':
-        process_url(args.url, zip_url=None, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) # metadata file
-    elif args.what == 'list':
-        process_list(args.meta, args.urls, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles)
-    else:
-        assert False
+    try:
+        if args.what == 'unpack':
+            unpack(args.archive, args.dry_run)
+        elif args.what == 'videos':
+            videos(args.dir, args.dry_run, args.outdir, args.image)
+        elif args.what == 'youtube':
+            ytupload(args.dir, args.dry_run, args.login, args.password, args.url)
+        elif args.what == 'rss-new':
+            new_rss(args.url, args.output)
+        elif args.what == 'rss':
+            watch_rss(args.meta, args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) #tmpdir, sleep interval
+        elif args.what == 'url':
+            process_url(args.url, zip_url=None, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) # metadata file
+        elif args.what == 'list':
+            process_list(args.meta, args.urls, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles)
+        else:
+            assert False
+    except KeyboardInterrupt:
+        pass
+    except:
+        logging.exception('Uncaught exception')
+
+    logging.info('ektobot terminating')
