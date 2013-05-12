@@ -3,9 +3,11 @@
 import os
 import re
 import cgi
+import sys
 import json
 import time
 import shutil
+import logging
 import os.path
 import urllib2
 import zipfile
@@ -68,6 +70,7 @@ def read_meta(dirname, filename='ektobot.json'):
     return meta
 
 def unpack(archive, dry_run, outdir='.'):
+    logger = logging.getLogger('unpack')
     #TODO write to temporary directory first (album artist fallback to dir name)
     #metadata: album artist + album name
     album = parse_name(archive)
@@ -76,14 +79,14 @@ def unpack(archive, dry_run, outdir='.'):
         os.mkdir(dirname)
 
     with zipfile.ZipFile(archive, 'r') as zipf:
-        print u'Extracting {0} to {1} ...'.format(archive, dirname)
+        logger.info(u'Extracting {0} to {1} ...'.format(archive, dirname))
         if not dry_run:
             zipf.extractall(dirname)
 
     #fix archives with extra directory level
     (_, dirs, files) = next(os.walk(dirname))
     if len(dirs) == 1 and len(files) == 0:
-        print 'Extra directory level detected, removing ...'
+        logger.info('Extra directory level detected, removing ...')
         nested_dir = os.path.join(dirname, dirs[0])
         (_, dirs, files) = next(os.walk(nested_dir))
         for f in dirs + files:
@@ -120,18 +123,23 @@ def find_cover(dirname):
 
     return None
 
+def clean_string(s):
+    return s.decode('utf-8', 'replace').encode('ascii', 'replace')
+
 def videos(dirname, dry_run, outdir=None, cover=None):
+    logger = logging.getLogger('video')
+
     if not outdir:
         outdir = os.path.join(dirname, 'video')
     if not os.path.isdir(outdir):
-        print u'Creating output directory {0}'.format(outdir)
+        logger.debug(u'Creating output directory {0}'.format(outdir))
         os.mkdir(outdir)
 
     if not cover:
         cover = find_cover(dirname)
     if not cover or not os.path.exists(cover):
         raise RuntimeError(u'Cover {0} not found'.format(cover))
-    print u'Using image {0} as a cover'.format(cover)
+    logger.info(u'Using image {0} as a cover'.format(cover))
 
     try:
         meta = read_meta(dirname)
@@ -156,14 +164,14 @@ def videos(dirname, dry_run, outdir=None, cover=None):
         # no need to write it to disk
         del tmeta['album']
 
-        outfile = os.path.join(outdir, infile.decode('utf-8', 'replace').encode('ascii', 'replace'))
+        outfile = os.path.join(outdir, clean_string(infile))
         outfile = outfile[:-3] + 'avi'
         meta['tracks'].append(tmeta)
         meta['tracks'][-1]['video_file'] = os.path.basename(outfile)
         infile = os.path.join(dirname, infile)
 
-        print u'Converting {0} '.format(infile)
-        print u'        to {0} ...'.format(outfile)
+        logger.info(u'Converting {0}'.format(clean_string(infile)))
+        logger.info(u'        to {0}'.format(outfile))
         cmdline = ['ffmpeg',
                    '-loglevel', 'error', # be quiet
                    '-n',                 # do not overwrite output files
@@ -179,13 +187,13 @@ def videos(dirname, dry_run, outdir=None, cover=None):
             if not dry_run:
                 run(cmdline)
             else:
-                print ' '.join(cmdline)
+                logger.debug(' '.join(cmdline))
         except:
-            print u'Converting {0} failed'.format(infile)
+            logger.error(u'Converting {0} failed'.format(clean_string(infile)))
             raise
 
     write_meta(outdir, meta, False)
-    print 'Done!'
+    logger.info('Done!')
 
 ektoplazm_description = u'''Artist: {artist}
 Track: {track}
@@ -219,6 +227,8 @@ def ask_email_password(email=None, passwd=None):
 def ytupload(dirname, dry_run, email, passwd, url=None):
     import gdata.youtube
     import gdata.youtube.service
+
+    logger = logging.getLogger('youtube')
 
     def yt_upload_video(yt_service, filename, title, description):
         media_group = gdata.media.Group(
@@ -267,11 +277,12 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
             trackno = trk['num'],
             albumurl = url if url else 'http://www.example.org/' #'http://www.ektoplazm.com/'
         )
-        print u'Uploading {0} as {1} with description:\n{2}\n'.format(filename, title, description)
+        logger.info(u'Uploading {0} as {1}'.format(filename, title))
+        logger.debug(u'Description:\n{0}'.format(description))
         if not dry_run:
             vid_id = yt_upload_video(yt_service, filename, title, description)
             playlist_ids.append(vid_id)
-        print 'Upload complete'
+        logger.info('Upload complete')
         time.sleep(60) # youtube's not happy when we're uploading too fast
 
     if meta['artist'] == 'VA':
@@ -279,10 +290,10 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
     else:
         pls_name = u'{0} - {1} ({2})'.format(meta['artist'], meta['album'], meta['year'])
     pls_description = ''
-    print u'Creating playlist {0}'.format(pls_name)
+    logger.info(u'Creating playlist {0}'.format(pls_name))
     if not dry_run:
         yt_create_playlist(yt_service, pls_name, pls_description, playlist_ids)
-    print 'Playlist created'
+    logger.info('Playlist created')
 
 def new_rss(url, outfile='ektobot.json'):
     meta = {
@@ -294,6 +305,8 @@ def new_rss(url, outfile='ektobot.json'):
 
 def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_interval=15*60):
     import feedparser
+
+    logger = logging.getLogger('rss')
 
     def mp3_link(e):
         for l in e.links:
@@ -315,17 +328,17 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
                 except KeyboardInterrupt:
                     raise
                 except:
-                    print traceback.format_exc()
-                    print 'Album processing failed'
+                    logger.exception('Album processing failed')
                     meta['albums'][entry.link] = 'FAIL'
                 write_meta('.', meta)
         try:
             time.sleep(5)
         except KeyboardInterrupt:
-            print 'User requested exit'
+            logger.info('User requested exit')
             break
 
 def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=False):
+    logger = logging.getLogger('list')
 
     meta = read_meta('.') # use metafile arg
     assert meta.has_key('albums')
@@ -343,12 +356,12 @@ def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=Fals
         except KeyboardInterrupt:
             raise
         except:
-            print traceback.format_exc()
-            print 'Album processing failed'
+            logger.exception('Album processing failed')
             meta['albums'][url] = 'FAIL'
         write_meta('.', meta)
 
 def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, keep=False):
+    logger = logging.getLogger('url')
 
     if not zip_url:
         html = urllib2.urlopen(page_url).read()
@@ -359,7 +372,7 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
 
     (email, passwd) = ask_email_password(email, passwd)
 
-    print u'Processing {0}'.format(page_url)
+    logger.info(u'Processing {0}'.format(page_url))
 
     with TemporaryDir('ektobot', keep=keep) as dname, \
             contextlib.closing(urllib2.urlopen(zip_url)) as inf:
@@ -373,7 +386,7 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
         archive = os.path.join(dname, params['filename'])
 
         with open(archive, 'w') as outf:
-            print u'Download size {0}M, destination {1}'.format(total_size/1024/1024, archive)
+            logger.info(u'Download size {0}M, destination {1}'.format(total_size/1024/1024, archive))
 
             while True:
                 chunk = inf.read(chunk_size)
@@ -383,14 +396,34 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
 
                 read += len(chunk)
                 if read / step > (read-len(chunk)) / step:
-                    print u'{0} %'.format(int(100.0*read/step/nsteps))
+                    logger.debug(u'{0} %'.format(int(100.0*read/step/nsteps)))
 
-            print 'Download complete'
+            logger.info('Download complete')
 
         mp3_dir = unpack(archive, dry_run=False, outdir=dname)
         video_dir = os.path.join(dname, 'video')
         videos(mp3_dir, dry_run=False, outdir=video_dir, cover=None)
         ytupload(video_dir, dry_run=dry_run, email=email, passwd=passwd, url=page_url)
+
+def setup_logging(filename='ektobot.log'):
+    fmt = logging.Formatter(
+            fmt='%(asctime)s %(name)-8s %(levelname)-8s %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+
+    log_stderr = logging.StreamHandler(sys.stderr)
+    log_stderr.setFormatter(fmt)
+    log_stderr.setLevel(logging.INFO)
+
+    log_file = logging.FileHandler(filename=filename)
+    log_file.setFormatter(fmt)
+    log_file.setLevel(logging.DEBUG)
+
+    root = logging.getLogger('')
+    root.addHandler(log_stderr)
+    root.addHandler(log_file)
+    root.setLevel(logging.DEBUG)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='PROG')
@@ -434,7 +467,8 @@ if __name__ == '__main__':
     parser_list.set_defaults(what='list')
 
     args = parser.parse_args()
-    #print args
+    setup_logging()
+
     if args.what == 'unpack':
         unpack(args.archive, args.dry_run)
     elif args.what == 'videos':
