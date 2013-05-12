@@ -277,8 +277,8 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
             trackno = trk['num'],
             albumurl = url if url else 'http://www.example.org/' #'http://www.ektoplazm.com/'
         )
-        logger.info(u'Uploading {0} as {1}'.format(filename, title))
-        logger.debug(u'Description:\n{0}'.format(description))
+        logger.info(u'Uploading {0} as {1}'.format(clean_string(filename), clean_string(title)))
+        logger.debug(u'Description:\n{0}'.format(clean_string(description)))
         if not dry_run:
             vid_id = yt_upload_video(yt_service, filename, title, description)
             playlist_ids.append(vid_id)
