@@ -333,7 +333,9 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
             logger.info('User requested exit')
             break
 
-def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=False):
+def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=False, retry=False):
+    logger = logging.getLogger('list')
+
     meta = read_meta('.') # use metafile arg
     assert meta.has_key('albums')
 
@@ -342,7 +344,10 @@ def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=Fals
 
     for url in urls:
         if url in meta['albums']:
-            continue
+            if retry and meta['albums'][url] == 'FAIL':
+                logger.debug('Retrying previously failed url {0}'.format(url))
+            else:
+                continue
 
         process_url(url, None, dry_run, email, passwd, keep=keep, metafile=metafile)
 
@@ -483,6 +488,7 @@ if __name__ == '__main__':
     parser_list = subparsers.add_parser('list', help='process list of urls read from a file')
     parser_list.add_argument('meta', type=str, help='metadata file (same as for rss)')
     parser_list.add_argument('urls', type=str, help='json file with the url list')
+    parser_list.add_argument('-f', '--retry-failing', action='store_true', help='retry urls marked as failed')
     parser_list.set_defaults(what='list')
 
     args = parser.parse_args()
@@ -503,7 +509,7 @@ if __name__ == '__main__':
         elif args.what == 'url':
             process_url(args.url, zip_url=None, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles, metafile=args.meta)
         elif args.what == 'list':
-            process_list(args.meta, args.urls, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles)
+            process_list(args.meta, args.urls, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles, retry=args.retry_failing)
         else:
             assert False
     except KeyboardInterrupt:
