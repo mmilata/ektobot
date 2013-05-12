@@ -7,13 +7,14 @@ import sys
 import json
 import time
 import shutil
+import urllib
 import logging
 import os.path
 import urllib2
 import zipfile
 import argparse
 import tempfile
-import traceback
+import urlparse
 import contextlib
 import subprocess
 
@@ -365,6 +366,20 @@ def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=Fals
 
 def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, keep=False):
     logger = logging.getLogger('url')
+    logger.info(u'Processing {0}'.format(page_url))
+
+    def url_file_name(fh):
+        try:
+            _, params = cgi.parse_header(fh.headers['content-disposition'])
+            return params['filename']
+        except KeyError:
+            pass # header not found, fall back on parsing url
+
+        url = urlparse.urlparse(fh.geturl())
+        path = urllib.unquote_plus(url.path)
+        fname = path.rsplit('/', 1)[-1]
+        logger.debug(u'Content-disposition missing, fallback file name {0}'.format(fname))
+        return fname
 
     if not zip_url:
         html = urllib2.urlopen(page_url).read()
@@ -376,8 +391,6 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
 
     (email, passwd) = ask_email_password(email, passwd)
 
-    logger.info(u'Processing {0}'.format(page_url))
-
     with TemporaryDir('ektobot', keep=keep) as dname, \
             contextlib.closing(urllib2.urlopen(zip_url)) as inf:
         chunk_size = 8192
@@ -386,8 +399,7 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
         nsteps = 10
         step = int(total_size / nsteps)
 
-        _, params = cgi.parse_header(inf.headers['content-disposition'])
-        archive = os.path.join(dname, params['filename'])
+        archive = os.path.join(dname, url_file_name(inf))
 
         with open(archive, 'w') as outf:
             logger.info(u'Download size {0}M, destination {1}'.format(total_size/1024/1024, archive))
