@@ -326,15 +326,7 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
 
         for entry in feed.entries:
             if entry.link not in meta['albums']:
-                try:
-                    process_url(entry.link, mp3_link(entry), dry_run, email, passwd, keep=keep)
-                    meta['albums'][entry.link] = 'OK'
-                except KeyboardInterrupt:
-                    raise
-                except:
-                    logger.exception('Album processing failed')
-                    meta['albums'][entry.link] = 'FAIL'
-                write_meta('.', meta)
+                process_url(entry.link, mp3_link(entry), dry_run, email, passwd, keep=keep, metafile=metafile)
         try:
             time.sleep(5)
         except KeyboardInterrupt:
@@ -342,8 +334,6 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
             break
 
 def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=False):
-    logger = logging.getLogger('list')
-
     meta = read_meta('.') # use metafile arg
     assert meta.has_key('albums')
 
@@ -354,19 +344,10 @@ def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=Fals
         if url in meta['albums']:
             continue
 
-        try:
-            process_url(url, None, dry_run, email, passwd, keep=keep)
-            meta['albums'][url] = 'OK'
-        except KeyboardInterrupt:
-            raise
-        except:
-            logger.exception('Album processing failed')
-            meta['albums'][url] = 'FAIL'
-        write_meta('.', meta)
+        process_url(url, None, dry_run, email, passwd, keep=keep, metafile=metafile)
 
-def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, keep=False):
-    logger = logging.getLogger('url')
-    logger.info(u'Processing {0}'.format(page_url))
+def download_archive(page_url, directory, zip_url=None):
+    logger = logging.getLogger('dl')
 
     def url_file_name(fh):
         try:
@@ -389,17 +370,14 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
         zip_url = m.group(1)
         logger.debug(u'Found archive url: {0}'.format(zip_url))
 
-    (email, passwd) = ask_email_password(email, passwd)
-
-    with TemporaryDir('ektobot', keep=keep) as dname, \
-            contextlib.closing(urllib2.urlopen(zip_url)) as inf:
+    with contextlib.closing(urllib2.urlopen(zip_url)) as inf:
         chunk_size = 8192
         total_size = int(inf.headers['content-length'])
         read = 0
         nsteps = 10
         step = int(total_size / nsteps)
 
-        archive = os.path.join(dname, url_file_name(inf))
+        archive = os.path.join(directory, url_file_name(inf))
 
         with open(archive, 'w') as outf:
             logger.info(u'Download size {0}M, destination {1}'.format(total_size/1024/1024, archive))
@@ -414,12 +392,35 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
                 if read / step > (read-len(chunk)) / step:
                     logger.debug(u'{0} %'.format(int(100.0*read/step/nsteps)))
 
-            logger.info('Download complete')
+    logger.info('Download complete')
+    return archive
 
-        mp3_dir = unpack(archive, dry_run=False, outdir=dname)
-        video_dir = os.path.join(dname, 'video')
-        videos(mp3_dir, dry_run=False, outdir=video_dir, cover=None)
-        ytupload(video_dir, dry_run=dry_run, email=email, passwd=passwd, url=page_url)
+def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, keep=False, metafile=None):
+    logger = logging.getLogger('url')
+    logger.info(u'Processing {0}'.format(page_url))
+
+    (email, passwd) = ask_email_password(email, passwd)
+
+    try:
+        with TemporaryDir('ektobot', keep=keep) as dname:
+            archive = download_archive(page_url, dname, zip_url)
+            mp3_dir = unpack(archive, dry_run=False, outdir=dname)
+            video_dir = os.path.join(dname, 'video')
+            videos(mp3_dir, dry_run=False, outdir=video_dir, cover=None)
+            ytupload(video_dir, dry_run=dry_run, email=email, passwd=passwd, url=page_url)
+    except KeyboardInterrupt:
+        raise
+    except:
+        logger.exception('Album processing failed')
+        result = 'FAIL'
+    else:
+        result = 'OK'
+
+    if metafile:
+        meta = read_meta('.') # use metafile arg
+        assert meta.has_key('albums')
+        meta['albums'][page_url] = result
+        write_meta('.', meta)
 
 def setup_logging(filename=None):
     fmt = logging.Formatter(
@@ -476,6 +477,7 @@ if __name__ == '__main__':
 
     parser_url = subparsers.add_parser('url', help='process ektoplazm url - download album, convert to videos and upload to youtube')
     parser_url.add_argument('url', type=str, help='ektoplazm album url')
+    parser_url.add_argument('-m', '--meta', type=str, help='json file with metadata')
     parser_url.set_defaults(what='url')
 
     parser_list = subparsers.add_parser('list', help='process list of urls read from a file')
@@ -499,7 +501,7 @@ if __name__ == '__main__':
         elif args.what == 'rss':
             watch_rss(args.meta, args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) #tmpdir, sleep interval
         elif args.what == 'url':
-            process_url(args.url, zip_url=None, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles) # metadata file
+            process_url(args.url, zip_url=None, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles, metafile=args.meta)
         elif args.what == 'list':
             process_list(args.meta, args.urls, dry_run=args.dry_run, email=args.login, passwd=args.password, keep=args.keep_tempfiles)
         else:
