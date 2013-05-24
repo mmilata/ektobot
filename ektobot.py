@@ -269,7 +269,8 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
     yt_service.client_id = 'ektobot-0'
     yt_service.email = email
     yt_service.password = passwd
-    yt_service.ProgrammaticLogin()
+    if not dry_run:
+        yt_service.ProgrammaticLogin()
 
     for trk in meta['tracks']:
         filename = os.path.join(dirname, trk['video_file'])
@@ -281,8 +282,8 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
             trackno = trk['num'],
             albumurl = url if url else 'http://www.example.org/' #'http://www.ektoplazm.com/'
         )
-        logger.info(u'Uploading {0} as {1}'.format(clean_string(filename), clean_string(title)))
-        logger.debug(u'Description:\n{0}'.format(clean_string(description)))
+        logger.info(u'Uploading {0} as {1}'.format(filename, title))
+        logger.debug(u'Description:\n{0}'.format(description))
         if not dry_run:
             vid_id = yt_upload_video(yt_service, filename, title, description)
             playlist_ids.append(vid_id)
