@@ -308,7 +308,7 @@ def new_rss(url, outfile='ektobot.json'):
 
     write_meta('.', meta, False) #XXX use outfile arg
 
-def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_interval=15*60):
+def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_interval=30*60):
     import feedparser
 
     logger = logging.getLogger('rss')
@@ -329,7 +329,7 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
             if entry.link not in meta['albums']:
                 process_url(entry.link, mp3_link(entry), dry_run, email, passwd, keep=keep, metafile=metafile)
         try:
-            time.sleep(5)
+            time.sleep(sleep_interval)
         except KeyboardInterrupt:
             logger.info('User requested exit')
             break
