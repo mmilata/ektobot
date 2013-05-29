@@ -327,7 +327,8 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
 
         for entry in feed.entries:
             if entry.link not in meta['albums']:
-                process_url(entry.link, mp3_link(entry), dry_run, email, passwd, keep=keep, metafile=metafile)
+                meta = process_url(entry.link, mp3_link(entry), dry_run, email, passwd,
+                                   keep=keep, metafile=metafile)
         try:
             time.sleep(sleep_interval)
         except KeyboardInterrupt:
@@ -422,11 +423,15 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
     else:
         result = 'OK'
 
+    meta = None
+
     if metafile:
         meta = read_meta('.') # use metafile arg
         assert meta.has_key('albums')
         meta['albums'][page_url] = result
         write_meta('.', meta)
+
+    return meta
 
 def setup_logging(filename=None):
     fmt = logging.Formatter(
