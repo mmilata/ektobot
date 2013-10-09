@@ -447,6 +447,33 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
 
     return meta
 
+#def parse_format(string, fmt, variables):
+#    # create RE
+#    fmt = re.escape(fmt)
+#    for var in variables:
+#        fmt = fmt.replace('\{'+var+'\}', '(?P<'+var+'>.*)')
+#
+#    # run RE on string
+#    m = re.match(fmt, string)
+#    if m:
+#        return m.groupdict()
+#
+#    raise ValueError('String did not match input format')
+#
+#def transform_format(string, informat, outformat, variables):
+#    parsed = parse_format(string, informat, variables)
+#    return outformat.format(**parsed)
+#
+#def reorder_video_description(yt_service, video_id):
+#    entry = yt_service.GetYouTubeVideoEntry(video_id=video_id)
+#    entry.media.description.text = transform_format(
+#            entry.media.description.text,
+#            old_ektoplazm_description,
+#            ektoplazm_description,
+#            ['artist', 'track', 'album', 'trackno', 'albumurl'])
+#    yt_service.debug = True                  # problem somewhere here
+#    print yt_service.UpdateVideoEntry(entry) #
+
 def setup_logging(filename=None):
     fmt = logging.Formatter(
             fmt='%(asctime)s %(name)-8s %(levelname)-7s %(message)s',
