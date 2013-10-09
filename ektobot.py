@@ -199,12 +199,20 @@ def videos(dirname, dry_run, outdir=None, cover=None):
     write_meta(outdir, meta, False)
     logger.info('Done!')
 
-ektoplazm_description = u'''Artist: {artist}
+old_ektoplazm_description = u'''Artist: {artist}
 Track: {track}
 Album: {album}
 Track number: {trackno}
 
 Download the full album from Ektoplazm: {albumurl}'''
+
+ektoplazm_description = u'''Download the full album from Ektoplazm: {albumurl}
+
+Artist: {artist}
+Track: {track}
+Album: {album}
+Track number: {trackno}'''
+
 
 default_description = u'''Artist: {artist}
 Track: {track}
