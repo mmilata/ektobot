@@ -271,7 +271,7 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
         new_entry = yt_service.InsertVideoEntry(video_entry, filename)
         return new_entry.id.text.split('/')[-1]
 
-    def yt_create_playlist(yt_service, meta, ids):
+    def yt_create_playlist(yt_service, meta, ids, dry_run=False):
         formats_artist = [
             u'{artist} - {album} ({year})',
             u'{artist} - {album}',
@@ -289,10 +289,13 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
         title = title[:60]
         description = ''
 
-        playlist = yt_service.AddPlaylist(title, description)
-        playlist_uri = playlist.feed_link[0].href #magic...
-        for video_id in ids:
-            playlist_entry = yt_service.AddPlaylistVideoEntryToPlaylist(playlist_uri, video_id)
+        logger.info(u'Creating playlist {0}'.format(title))
+
+        if not dry_run:
+            playlist = yt_service.AddPlaylist(title, description)
+            playlist_uri = playlist.feed_link[0].href #magic...
+            for video_id in ids:
+                playlist_entry = yt_service.AddPlaylistVideoEntryToPlaylist(playlist_uri, video_id)
 
     meta = read_meta(dirname)
     playlist_ids = []
@@ -321,10 +324,7 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
         logger.info('Upload complete')
         time.sleep(60) # youtube's not happy when we're uploading too fast
 
-    logger.info(u'Creating playlist {0}'.format(pls_name))
-    if not dry_run:
-        yt_create_playlist(yt_service, meta, playlist_ids)
-    logger.info('Playlist created')
+    yt_create_playlist(yt_service, meta, playlist_ids, dry_run)
 
 def new_rss(url, outfile='ektobot.json'):
     meta = {
