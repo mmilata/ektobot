@@ -175,7 +175,7 @@ def videos(dirname, dry_run, outdir=None, cover=None):
         infile = os.path.join(dirname, infile)
 
         logger.info(u'Converting {0}'.format(clean_string(infile)))
-        logger.info(u'        to {0}'.format(outfile))
+        logger.debug(u'        to {0}'.format(outfile))
         cmdline = ['ffmpeg',
                    '-loglevel', 'error', # be quiet
                    '-n',                 # do not overwrite output files
@@ -316,12 +316,13 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
             trackno = trk['num'],
             albumurl = url if url else 'http://www.example.org/' #'http://www.ektoplazm.com/'
         )
-        logger.info(u'Uploading {0} as {1}'.format(filename, title))
+        logger.info(u'Uploading {0}'.format(title))
+        logger.debug(u'Filename {0}'.format(filename))
         logger.debug(u'Description:\n{0}'.format(description))
         if not dry_run:
             vid_id = yt_upload_video(yt_service, filename, title, description)
             playlist_ids.append(vid_id)
-        logger.info('Upload complete')
+        logger.debug('Upload complete')
         time.sleep(60) # youtube's not happy when we're uploading too fast
 
     yt_create_playlist(yt_service, meta, playlist_ids, dry_run)
@@ -425,7 +426,7 @@ def download_archive(page_url, directory, zip_url=None):
                 if read / step > (read-len(chunk)) / step:
                     logger.debug(u'{0} %'.format(int(100.0*read/step/nsteps)))
 
-    logger.info('Download complete')
+    logger.debug('Download complete')
     return archive
 
 def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, keep=False, metafile=None):
@@ -444,9 +445,10 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
     except KeyboardInterrupt:
         raise
     except:
-        logger.exception('Album processing failed')
+        logger.exception(u'Album processing failed')
         result = 'FAIL'
     else:
+        logger.info(u'Album successfully uploaded')
         result = 'OK'
 
     meta = None
