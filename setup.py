@@ -8,5 +8,5 @@ setup(name='ektobot',
       author='Martin Milata',
       author_email='b42@srck.net',
       packages=['ektobot'],
-      scripts=['ektobot.py'],
+      scripts=['bin/ektobot'],
       license='WTFPL')
