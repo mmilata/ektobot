@@ -1,4 +1,5 @@
 
+import re
 import time
 import logging
 import os.path
@@ -122,3 +123,30 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
         time.sleep(60) # youtube's not happy when we're uploading too fast
 
     yt_create_playlist(yt_service, meta, playlist_ids, dry_run)
+
+#def parse_format(string, fmt, variables):
+#    # create RE
+#    fmt = re.escape(fmt)
+#    for var in variables:
+#        fmt = fmt.replace('\{'+var+'\}', '(?P<'+var+'>.*)')
+#
+#    # run RE on string
+#    m = re.match(fmt, string)
+#    if m:
+#        return m.groupdict()
+#
+#    raise ValueError('String did not match input format')
+#
+#def transform_format(string, informat, outformat, variables):
+#    parsed = parse_format(string, informat, variables)
+#    return outformat.format(**parsed)
+#
+#def reorder_video_description(yt_service, video_id):
+#    entry = yt_service.GetYouTubeVideoEntry(video_id=video_id)
+#    entry.media.description.text = transform_format(
+#            entry.media.description.text,
+#            old_ektoplazm_description,
+#            ektoplazm_description,
+#            ['artist', 'track', 'album', 'trackno', 'albumurl'])
+#    yt_service.debug = True                  # problem somewhere here
+#    print yt_service.UpdateVideoEntry(entry) #
