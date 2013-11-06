@@ -56,7 +56,7 @@ def setup_logging(filename=None):
         log_file.setLevel(logging.DEBUG)
         root.addHandler(log_file)
 
-def main(args):
+def process_command_line(args):
     parser = argparse.ArgumentParser(prog='PROG')
     parser.add_argument('-n', '--dry-run', action='store_true', help='do not write/upload anything')
     parser.add_argument('-l', '--login', type=str, help='youtube login (email)')
@@ -100,7 +100,11 @@ def main(args):
     parser_list.add_argument('-f', '--retry-failing', action='store_true', help='retry urls marked as failed')
     parser_list.set_defaults(what='list')
 
-    opts = parser.parse_args(args)
+    return parser.parse_args(args)
+
+
+def main(args):
+    opts = process_command_line(args)
     setup_logging(opts.log_file)
     logging.info('ektobot started')
 
