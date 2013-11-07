@@ -46,8 +46,9 @@ def StdioString(init_stdin=""):
         sys.stderr = orig_err
 
 def run(args):
+    debugstr = args[0] + ' ' + ' '.join(map(lambda s: "'{0}'".format(s), args[1:]))
     logger = logging.getLogger('run')
-    logger.debug(' '.join(args))
+    logger.debug(debugstr)
 
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (out, err) = p.communicate()
