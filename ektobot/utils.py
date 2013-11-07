@@ -1,9 +1,11 @@
 
+import sys
 import json
 import shutil
 import os.path
 import getpass
 import logging
+import StringIO
 import tempfile
 import contextlib
 import subprocess
@@ -19,6 +21,29 @@ def TemporaryDir(name='tmp', keep=False):
         if not keep:
             logger.debug('Deleting temporary directory {0}'.format(dname))
             shutil.rmtree(dname)
+
+@contextlib.contextmanager
+def StdioString(init_stdin=""):
+    class Handle(object):
+        def __init__(self):
+            self.stdin = sys.stdin = StringIO.StringIO(init_stdin)
+            self.stdout = sys.stdout = StringIO.StringIO()
+            self.stderr = sys.stderr = StringIO.StringIO()
+
+        def getvalues(self):
+            self.stdin = sys.stdin.getvalue()
+            self.stdout = sys.stdout.getvalue()
+            self.stderr = sys.stderr.getvalue()
+
+    try:
+        (orig_in, orig_out, orig_err) = (sys.stdin, sys.stdout, sys.stderr)
+        h = Handle()
+        yield h
+        h.getvalues()
+    finally:
+        sys.stdin = orig_in
+        sys.stdout = orig_out
+        sys.stderr = orig_err
 
 def run(args):
     logger = logging.getLogger('run')
