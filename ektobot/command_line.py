@@ -80,6 +80,8 @@ def main(args):
     setup_logging(opts.log_file)
     logging.info('ektobot started')
 
+    exitcode = 0
+
     try:
         if opts.what == 'unpack':
             unpack(opts.archive, opts.dry_run)
@@ -101,5 +103,7 @@ def main(args):
         pass
     except:
         logging.exception('Uncaught exception')
+        exitcode = 1
 
     logging.info('ektobot terminating')
+    sys.exit(exitcode)
