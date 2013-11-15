@@ -10,6 +10,8 @@ import tempfile
 import contextlib
 import subprocess
 
+USER_AGENT = 'ektobot-0'
+
 @contextlib.contextmanager
 def TemporaryDir(name='tmp', keep=False):
     logger = logging.getLogger('tmpdir')

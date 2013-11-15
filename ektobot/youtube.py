@@ -42,7 +42,7 @@ def ytlogin(email, passwd, dry_run=False):
     #yt_service.ssl = True
     yt_service.developer_key = 'AI39si5d9grkxFwwm603wvh2toZxshBqVkCWalTT3UXB4b3W3TJz0bCwBv0qqRN9LeQDz0FAXOfCaSW35mAbtj3pnI8cXKu7YA'
     yt_service.source = 'ektobot'
-    yt_service.client_id = 'ektobot-0'
+    yt_service.client_id = USER_AGENT
     yt_service.email = email
     yt_service.password = passwd
     if not dry_run:

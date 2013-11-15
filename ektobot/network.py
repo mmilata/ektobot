@@ -10,7 +10,7 @@ import urlparse
 import contextlib
 
 from unpack import unpack
-from utils import read_meta, write_meta, ask_email_password, TemporaryDir
+from utils import read_meta, write_meta, ask_email_password, TemporaryDir, USER_AGENT
 from video_convert import videos
 from youtube import ytupload
 
@@ -83,15 +83,18 @@ def download_archive(page_url, directory, zip_url=None):
         logger.debug(u'Content-disposition missing, fallback file name {0}'.format(fname))
         return fname
 
+    opener = urllib2.build_opener()
+    opener.addheaders = [('user-agent', USER_AGENT)]
+
     if not zip_url:
-        html = urllib2.urlopen(page_url).read()
+        html = opener.open(page_url).read()
         # fragile ...
         m = re.search(r'\<a href="([^"]+)"\>MP3 Download', html)
         assert m != None
         zip_url = m.group(1)
         logger.debug(u'Found archive url: {0}'.format(zip_url))
 
-    with contextlib.closing(urllib2.urlopen(zip_url)) as inf:
+    with contextlib.closing(opener.open(zip_url)) as inf:
         chunk_size = 8192
         total_size = int(inf.headers['content-length'])
         read = 0
