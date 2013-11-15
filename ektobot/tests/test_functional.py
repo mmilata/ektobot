@@ -57,7 +57,7 @@ class TestFunctional(unittest.TestCase):
             self.assertRunFails(['--halp'])
 
     def test_commands(self):
-        keep = True
+        keep = False
         with TemporaryDir('ektobot.test_unpack', keep=keep) as tmpdir:
             os.chdir(tmpdir)
             src = os.path.dirname(__file__)

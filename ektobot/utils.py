@@ -78,3 +78,35 @@ def ask_email_password(email=None, passwd=None):
         passwd = getpass.getpass('password: ')
 
     return (email, passwd)
+
+def load_config(filename):
+    res = {}
+
+    with open(filename, 'r') as fh:
+        cfgstr = fh.read()
+
+    section = None
+    for lineno, line in enumerate(cfgstr.splitlines()):
+        line = line.strip()
+
+        if line == '' or line.startswith('#'):
+            pass
+
+        elif line.startswith('[') and line.endswith(']'):
+            section = line[1:][:-1].strip()
+            if section not in res:
+                res[section] = {}
+
+        elif '=' in line:
+            (k, v) = line.split('=', 2)
+            k = k.strip()
+            v = v.strip()
+
+            if section is None:
+                raise SyntaxError('{0}: missing first section'.format(filename))
+            res[section][k] = v
+
+        else:
+            raise SyntaxError('{0}: malformed line {1}'.format(filename, lineno))
+
+    return res
