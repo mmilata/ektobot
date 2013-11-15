@@ -58,15 +58,21 @@ def run(args):
         raise RuntimeError(u'Subprocess failed w/ return code {0}, stderr:\n {1}'
                            .format(p.returncode, err))
 
-def write_meta(dirname, meta, dry_run=False, filename='ektobot.json'):
+def write_dirmeta(dirname, meta, dry_run=False, filename='ektobot.json'):
+    write_meta(os.path.join(dirname, filename), meta, dry_run)
+
+def write_meta(filename, meta, dry_run=False):
     if dry_run:
         return
 
-    with open(os.path.join(dirname, filename), 'w') as fh:
+    with open(filename, 'w') as fh:
         json.dump(meta, fh, indent=2, sort_keys=True)
 
-def read_meta(dirname, filename='ektobot.json'):
-    with open(os.path.join(dirname, filename), 'r') as fh:
+def read_dirmeta(dirname, filename='ektobot.json'):
+    return read_meta(os.path.join(dirname, filename))
+
+def read_meta(filename):
+    with open(filename, 'r') as fh:
         meta = json.load(fh)
     return meta
 

@@ -94,7 +94,7 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
             for video_id in ids:
                 playlist_entry = yt_service.AddPlaylistVideoEntryToPlaylist(playlist_uri, video_id)
 
-    meta = read_meta(dirname)
+    meta = read_dirmeta(dirname)
     playlist_ids = []
 
     desc_template = templates['default']

@@ -6,9 +6,11 @@ import os.path
 import unittest
 import StringIO
 
-from ektobot.utils import StdioString, TemporaryDir
+from ektobot.utils import StdioString, TemporaryDir, read_meta
 from ektobot.command_line import main
 
+KEEP = False
+STATENAME = 'state.json'
 SONGNAME = '01 - Test artist - Test song.mp3'
 ZIPNAME = 'Test artist - Test album - 2013 - MP3.zip'
 DIRNAME = 'Test_artist_-_Test_album'
@@ -57,8 +59,7 @@ class TestFunctional(unittest.TestCase):
             self.assertRunFails(['--halp'])
 
     def test_commands(self):
-        keep = False
-        with TemporaryDir('ektobot.test_unpack', keep=keep) as tmpdir:
+        with TemporaryDir('ektobot.test_unpack', keep=KEEP) as tmpdir:
             os.chdir(tmpdir)
             src = os.path.dirname(__file__)
             src = os.path.join(src, 'data', ZIPNAME)
@@ -73,6 +74,20 @@ class TestFunctional(unittest.TestCase):
             # XXX ffmpeg segfaults on Fedora 19
             #with StdioString() as h:
             #    self.assertRunSucceeds(['videos', DIRNAME])
+
+    def test_state_file(self):
+        with TemporaryDir('ektobot.test_state_file', keep=KEEP) as tmpdir:
+            statefile = os.path.join(tmpdir, STATENAME)
+            self.assertFalse(os.path.isfile(statefile))
+            with StdioString() as h:
+                self.assertRunSucceeds(['--state-file', statefile, 'rss-new', 'http://example.com'])
+            self.assertTrue(os.path.isfile(statefile))
+
+            meta = read_meta(statefile)
+            self.assertIsInstance(meta, dict)
+            self.assertIn('url', meta)
+            self.assertEqual(meta['url'], 'http://example.com')
+
 
 if __name__ == '__main__':
     from ektobot.utils import run

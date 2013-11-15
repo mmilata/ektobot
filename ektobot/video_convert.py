@@ -4,7 +4,7 @@ import re
 import logging
 import os.path
 
-from utils import read_meta, write_meta, run
+from utils import read_dirmeta, write_dirmeta, run
 
 def find_cover(dirname):
     (_, __, files) = next(os.walk(dirname))
@@ -78,7 +78,7 @@ def videos(dirname, dry_run, outdir=None, cover=None):
     logger.info(u'Using image {0} as a cover'.format(cover))
 
     try:
-        meta = read_meta(dirname)
+        meta = read_dirmeta(dirname)
         meta['tracks'] = []
     except IOError:
         # if there's no .json, read the album metadata from the first track
@@ -128,5 +128,5 @@ def videos(dirname, dry_run, outdir=None, cover=None):
             logger.error(u'Converting {0} failed'.format(clean_string(infile)))
             raise
 
-    write_meta(outdir, meta, False)
+    write_dirmeta(outdir, meta, dry_run=False)
     logger.info('Done!')

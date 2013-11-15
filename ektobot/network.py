@@ -14,13 +14,13 @@ from utils import read_meta, write_meta, ask_email_password, TemporaryDir, USER_
 from video_convert import videos
 from youtube import ytupload
 
-def new_rss(url, outfile='ektobot.json'):
+def new_rss(url, statefile):
     meta = {
         'url': url,
         'albums': {}
     }
 
-    write_meta('.', meta, False) #XXX use outfile arg
+    write_meta(statefile, meta, dry_run=False)
 
 def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_interval=30*60):
     import feedparser
@@ -33,7 +33,7 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
                 return l.href
         return None
 
-    meta = read_meta('.') # XXX use metafile arg
+    meta = read_meta(metafile)
     (email, passwd) = ask_email_password(email, passwd)
 
     while True:
@@ -52,10 +52,10 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
 def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=False, retry=False):
     logger = logging.getLogger('list')
 
-    meta = read_meta('.') # use metafile arg
+    meta = read_meta(metafile)
     assert meta.has_key('albums')
 
-    urls = read_meta('.', filename=listfile)
+    urls = read_meta(listfile) # not a state file
     (email, passwd) = ask_email_password(email, passwd)
 
     for url in urls:
@@ -144,9 +144,9 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
     meta = None
 
     if metafile:
-        meta = read_meta('.') # use metafile arg
+        meta = read_meta(metafile)
         assert meta.has_key('albums')
         meta['albums'][page_url] = result
-        write_meta('.', meta)
+        write_meta(metafile, meta)
 
     return meta

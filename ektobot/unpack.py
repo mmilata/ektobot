@@ -6,7 +6,7 @@ import logging
 import os.path
 import zipfile
 
-from utils import write_meta
+from utils import write_dirmeta
 
 def parse_name(filename):
     (dn, fn) = os.path.split(filename)
@@ -45,7 +45,7 @@ def unpack(archive, dry_run, outdir='.'):
             shutil.move(src, dirname)
         shutil.rmtree(nested_dir)
 
-    write_meta(dirname, album, dry_run)
+    write_dirmeta(dirname, album, dry_run)
 
     return dirname
 

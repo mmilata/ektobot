@@ -5,7 +5,7 @@ import logging
 import argparse
 
 from youtube import ytupload
-from utils import ask_email_password, read_meta, write_meta, load_config
+from utils import load_config
 from unpack import unpack
 from video_convert import videos
 from network import new_rss, watch_rss, process_url, process_list
