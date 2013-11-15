@@ -1,10 +1,11 @@
 
 import sys
+import os.path
 import logging
 import argparse
 
 from youtube import ytupload
-from utils import ask_email_password, read_meta, write_meta
+from utils import ask_email_password, read_meta, write_meta, load_config
 from unpack import unpack
 from video_convert import videos
 from network import new_rss, watch_rss, process_url, process_list
@@ -28,8 +29,43 @@ def setup_logging(filename=None):
         log_file.setLevel(logging.DEBUG)
         root.addHandler(log_file)
 
+def tobool(s):
+    if s.lower() in ('yes', 'true', 'on', '1'):
+        return True
+    elif s.lower() in ('no', 'false', 'off', '0'):
+        return False
+    else:
+        raise ValueError('Invalid boolean value in configuration')
+
+def set_defaults_from_config(cfgfile, parser):
+    if cfgfile:
+        cfg = load_config(cfgfile)
+    else:
+        # try the default, don't fail if it doesn't exist
+        try:
+            cfg = load_config(os.path.expanduser('~/.ektobot/config'))
+        except IOError:
+            return
+
+    config_subs = {
+        'log_file':       ('main', 'log_file', os.path.expanduser),
+        'keep_tempfiles': ('main', 'keep_tempfiles', tobool),
+        'login':    ('youtube', 'login', None),
+        'password': ('youtube', 'password', None),
+    }
+
+    for opt_name, (section, key, f) in config_subs.iteritems():
+        try:
+            v = cfg[section][key]
+        except KeyError:
+            continue
+        if f:
+            v = f(v)
+        parser.set_defaults(**{opt_name: v})
+
 def process_command_line(args):
     parser = argparse.ArgumentParser(prog='PROG')
+    parser.add_argument('-c', '--config', type=str, help='configuration file')
     parser.add_argument('-n', '--dry-run', action='store_true', help='do not write/upload anything')
     parser.add_argument('-l', '--login', type=str, help='youtube login (email)')
     parser.add_argument('-p', '--password', type=str, help='youtube password')
@@ -72,6 +108,9 @@ def process_command_line(args):
     parser_list.add_argument('-f', '--retry-failing', action='store_true', help='retry urls marked as failed')
     parser_list.set_defaults(what='list')
 
+    # don't bother, just parse it twice
+    opts = parser.parse_args(args)
+    set_defaults_from_config(opts.config, parser)
     return parser.parse_args(args)
 
 
