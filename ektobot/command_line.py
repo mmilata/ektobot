@@ -49,6 +49,7 @@ def set_defaults_from_config(cfgfile, parser):
 
     config_subs = {
         'log_file':       ('main', 'log_file', os.path.expanduser),
+        'state_file':     ('main', 'state_file', os.path.expanduser),
         'keep_tempfiles': ('main', 'keep_tempfiles', tobool),
         'login':    ('youtube', 'login', None),
         'password': ('youtube', 'password', None),
@@ -66,6 +67,7 @@ def set_defaults_from_config(cfgfile, parser):
 def process_command_line(args):
     parser = argparse.ArgumentParser(prog='PROG')
     parser.add_argument('-c', '--config', type=str, help='configuration file')
+    parser.add_argument('-m', '--state-file', type=str, help='state file (meta)'),
     parser.add_argument('-n', '--dry-run', action='store_true', help='do not write/upload anything')
     parser.add_argument('-l', '--login', type=str, help='youtube login (email)')
     parser.add_argument('-p', '--password', type=str, help='youtube password')
@@ -89,21 +91,17 @@ def process_command_line(args):
     parser_yt.set_defaults(what='youtube')
 
     parser_rss_new = subparsers.add_parser('rss-new', help='create metadata for rss feed')
-    parser_rss_new.add_argument('-o', '--output', type=str, help='metadata file name')
     parser_rss_new.add_argument('url', type=str, help='url of the feed')
     parser_rss_new.set_defaults(what='rss-new')
 
     parser_rss = subparsers.add_parser('rss', help='watch rss feed')
-    parser_rss.add_argument('meta', type=str, help='metadata file (create w/ rss-new)')
     parser_rss.set_defaults(what='rss')
 
     parser_url = subparsers.add_parser('url', help='process ektoplazm url - download album, convert to videos and upload to youtube')
     parser_url.add_argument('url', type=str, help='ektoplazm album url')
-    parser_url.add_argument('-m', '--meta', type=str, help='json file with metadata')
     parser_url.set_defaults(what='url')
 
     parser_list = subparsers.add_parser('list', help='process list of urls read from a file')
-    parser_list.add_argument('meta', type=str, help='metadata file (same as for rss)')
     parser_list.add_argument('urls', type=str, help='json file with the url list')
     parser_list.add_argument('-f', '--retry-failing', action='store_true', help='retry urls marked as failed')
     parser_list.set_defaults(what='list')
@@ -129,13 +127,13 @@ def main(args):
         elif opts.what == 'youtube':
             ytupload(opts.dir, opts.dry_run, opts.login, opts.password, opts.url)
         elif opts.what == 'rss-new':
-            new_rss(opts.url, opts.output)
+            new_rss(opts.url, opts.state_file)
         elif opts.what == 'rss':
-            watch_rss(opts.meta, opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles) #tmpdir, sleep interval
+            watch_rss(opts.state_file, opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles) #tmpdir, sleep interval
         elif opts.what == 'url':
-            process_url(opts.url, zip_url=None, dry_run=opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles, metafile=opts.meta)
+            process_url(opts.url, zip_url=None, dry_run=opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles, metafile=opts.state_file)
         elif opts.what == 'list':
-            process_list(opts.meta, opts.urls, dry_run=opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles, retry=opts.retry_failing)
+            process_list(opts.state_file, opts.urls, dry_run=opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles, retry=opts.retry_failing)
         else:
             assert False
     except KeyboardInterrupt:
