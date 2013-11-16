@@ -1,12 +1,13 @@
 
 import os
 import sys
+import json
 import shutil
 import os.path
 import unittest
 import StringIO
 
-from ektobot.utils import StdioString, TemporaryDir, read_meta
+from ektobot.utils import StdioString, TemporaryDir
 from ektobot.command_line import main
 
 KEEP = False
@@ -80,13 +81,14 @@ class TestFunctional(unittest.TestCase):
             statefile = os.path.join(tmpdir, STATENAME)
             self.assertFalse(os.path.isfile(statefile))
             with StdioString() as h:
-                self.assertRunSucceeds(['--state-file', statefile, 'rss-new', 'http://example.com'])
+                self.assertRunSucceeds(['--state-file', statefile, 'set-url', 'http://example.com'])
             self.assertTrue(os.path.isfile(statefile))
 
-            meta = read_meta(statefile)
+            meta = json.load(open(statefile, 'r'))
             self.assertIsInstance(meta, dict)
-            self.assertIn('url', meta)
-            self.assertEqual(meta['url'], 'http://example.com')
+            self.assertIn('feed', meta)
+            rhs = { 'version': 1, 'feed': 'http://example.com', 'urls': {} }
+            self.assertEqual(meta, rhs)
 
 
 if __name__ == '__main__':

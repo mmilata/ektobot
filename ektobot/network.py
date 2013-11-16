@@ -10,19 +10,11 @@ import urlparse
 import contextlib
 
 from unpack import unpack
-from utils import read_meta, write_meta, ask_email_password, TemporaryDir, USER_AGENT
+from utils import read_meta, ask_email_password, TemporaryDir, USER_AGENT
 from video_convert import videos
 from youtube import ytupload
 
-def new_rss(url, statefile):
-    meta = {
-        'url': url,
-        'albums': {}
-    }
-
-    write_meta(statefile, meta, dry_run=False)
-
-def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_interval=30*60):
+def watch_rss(meta, dry_run, email=None, passwd=None, keep=False, sleep_interval=30*60):
     import feedparser
 
     logger = logging.getLogger('rss')
@@ -33,39 +25,35 @@ def watch_rss(metafile, dry_run, email=None, passwd=None, keep=False, sleep_inte
                 return l.href
         return None
 
-    meta = read_meta(metafile)
     (email, passwd) = ask_email_password(email, passwd)
 
     while True:
         feed = feedparser.parse(meta['url']) # XXX may throw exception
 
         for entry in feed.entries:
-            if entry.link not in meta['albums']:
-                meta = process_url(entry.link, mp3_link(entry), dry_run, email, passwd,
-                                   keep=keep, metafile=metafile)
+            if entry.link not in meta.urls:
+                process_url(meta, entry.link, mp3_link(entry), dry_run, email, passwd,
+                            keep=keep)
         try:
             time.sleep(sleep_interval)
         except KeyboardInterrupt:
             logger.info('User requested exit')
             break
 
-def process_list(metafile, listfile, dry_run, email=None, passwd=None, keep=False, retry=False):
+def process_list(meta, listfile, dry_run, email=None, passwd=None, keep=False, retry=False):
     logger = logging.getLogger('list')
-
-    meta = read_meta(metafile)
-    assert meta.has_key('albums')
 
     urls = read_meta(listfile) # not a state file
     (email, passwd) = ask_email_password(email, passwd)
 
     for url in urls:
-        if url in meta['albums']:
-            if retry and meta['albums'][url] == 'FAIL':
+        if url in meta.urls:
+            if retry and meta.url(url).youtube == 'failed':
                 logger.debug('Retrying previously failed url {0}'.format(url))
             else:
                 continue
 
-        process_url(url, None, dry_run, email, passwd, keep=keep, metafile=metafile)
+        process_url(meta, url, None, dry_run, email, passwd, keep=keep)
 
 def download_archive(page_url, directory, zip_url=None):
     logger = logging.getLogger('dl')
@@ -119,7 +107,7 @@ def download_archive(page_url, directory, zip_url=None):
     logger.debug('Download complete')
     return archive
 
-def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, keep=False, metafile=None):
+def process_url(meta, page_url, zip_url=None, dry_run=False, email=None, passwd=None, keep=False):
     logger = logging.getLogger('url')
     logger.info(u'Processing {0}'.format(page_url))
 
@@ -136,17 +124,10 @@ def process_url(page_url, zip_url=None, dry_run=False, email=None, passwd=None, 
         raise
     except:
         logger.exception(u'Album processing failed')
-        result = 'FAIL'
+        result = 'failed'
     else:
         logger.info(u'Album successfully uploaded')
-        result = 'OK'
+        result = 'done-unknown-id'
 
-    meta = None
-
-    if metafile:
-        meta = read_meta(metafile)
-        assert meta.has_key('albums')
-        meta['albums'][page_url] = result
-        write_meta(metafile, meta)
-
-    return meta
+    meta.url(page_url).youtube = result
+    meta.save()

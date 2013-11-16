@@ -4,11 +4,12 @@ import os.path
 import logging
 import argparse
 
+from state import State
 from youtube import ytupload
 from utils import load_config
 from unpack import unpack
 from video_convert import videos
-from network import new_rss, watch_rss, process_url, process_list
+from network import watch_rss, process_url, process_list
 
 def setup_logging(filename=None):
     fmt = logging.Formatter(
@@ -90,9 +91,9 @@ def process_command_line(args):
     parser_yt.add_argument('-u', '--url', type=str, help='ektoplazm url of the album')
     parser_yt.set_defaults(what='youtube')
 
-    parser_rss_new = subparsers.add_parser('rss-new', help='create metadata for rss feed')
+    parser_rss_new = subparsers.add_parser('set-url', help='create metadata for rss feed')
     parser_rss_new.add_argument('url', type=str, help='url of the feed')
-    parser_rss_new.set_defaults(what='rss-new')
+    parser_rss_new.set_defaults(what='set-url')
 
     parser_rss = subparsers.add_parser('rss', help='watch rss feed')
     parser_rss.set_defaults(what='rss')
@@ -120,18 +121,23 @@ def main(args):
     exitcode = 0
 
     try:
+        if opts.what in ('set-url', 'rss', 'url', 'list'):
+            meta = State(opts.state_file)
+
         if opts.what == 'unpack':
             unpack(opts.archive, opts.dry_run)
         elif opts.what == 'videos':
             videos(opts.dir, opts.dry_run, opts.outdir, opts.image)
         elif opts.what == 'youtube':
             ytupload(opts.dir, opts.dry_run, opts.login, opts.password, opts.url)
-        elif opts.what == 'rss-new':
-            new_rss(opts.url, opts.state_file)
+        elif opts.what == 'set-url':
+            meta.feed = opts.url
+            if not opts.dry_run:
+                meta.save()
         elif opts.what == 'rss':
-            watch_rss(opts.state_file, opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles) #tmpdir, sleep interval
+            watch_rss(meta, opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles) #tmpdir, sleep interval
         elif opts.what == 'url':
-            process_url(opts.url, zip_url=None, dry_run=opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles, metafile=opts.state_file)
+            process_url(meta, opts.url, zip_url=None, dry_run=opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles)
         elif opts.what == 'list':
             process_list(opts.state_file, opts.urls, dry_run=opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles, retry=opts.retry_failing)
         else:
