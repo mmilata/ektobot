@@ -1,6 +1,7 @@
 
 import re
 import cgi
+import json
 import time
 import urllib
 import urllib2
@@ -10,7 +11,7 @@ import urlparse
 import contextlib
 
 from unpack import unpack
-from utils import read_meta, ask_email_password, TemporaryDir, USER_AGENT
+from utils import ask_email_password, TemporaryDir, USER_AGENT
 from video_convert import videos
 from youtube import ytupload
 
@@ -43,7 +44,9 @@ def watch_rss(meta, dry_run, email=None, passwd=None, keep=False, sleep_interval
 def process_list(meta, listfile, dry_run, email=None, passwd=None, keep=False, retry=False):
     logger = logging.getLogger('list')
 
-    urls = read_meta(listfile) # not a state file
+    with open(listfile, 'r') as fh:
+        urls = json.load(fh)
+
     (email, passwd) = ask_email_password(email, passwd)
 
     for url in urls:
