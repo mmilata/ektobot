@@ -28,7 +28,7 @@ def watch_rss(meta, dry_run, email=None, passwd=None, keep=False, sleep_interval
     (email, passwd) = ask_email_password(email, passwd)
 
     while True:
-        feed = feedparser.parse(meta['url']) # XXX may throw exception
+        feed = feedparser.parse(meta.feed) # XXX may throw exception
 
         for entry in feed.entries:
             if entry.link not in meta.urls:
