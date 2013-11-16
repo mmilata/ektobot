@@ -132,8 +132,7 @@ def main(args):
             ytupload(opts.dir, opts.dry_run, opts.login, opts.password, opts.url)
         elif opts.what == 'set-url':
             meta.feed = opts.url
-            if not opts.dry_run:
-                meta.save()
+            meta.save(dry_run=opts.dry_run)
         elif opts.what == 'rss':
             watch_rss(meta, opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles) #tmpdir, sleep interval
         elif opts.what == 'url':

@@ -56,10 +56,12 @@ class State(object):
 
         return res
 
-    def save(self):
+    def save(self, dry_run=False):
         logger = logging.getLogger('state')
-
         j = self.to_json()
+
+        if dry_run:
+            return
 
         (directory, base) = os.path.split(self.filename)
         if not os.path.isdir(directory):

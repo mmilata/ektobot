@@ -130,4 +130,4 @@ def process_url(meta, page_url, zip_url=None, dry_run=False, email=None, passwd=
         result = 'done-unknown-id'
 
     meta.url(page_url).youtube = result
-    meta.save()
+    meta.save(dry_run=dry_run)
