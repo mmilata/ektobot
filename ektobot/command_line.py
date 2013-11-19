@@ -11,7 +11,7 @@ from unpack import unpack
 from video_convert import videos
 from network import watch_rss, process_url, process_list
 
-def setup_logging(filename=None):
+def setup_logging(filename=None, verbose=False):
     fmt = logging.Formatter(
             fmt='%(asctime)s %(name)-8s %(levelname)-7s %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
@@ -21,7 +21,7 @@ def setup_logging(filename=None):
 
     log_stderr = logging.StreamHandler(sys.stderr)
     log_stderr.setFormatter(fmt)
-    log_stderr.setLevel(logging.INFO)
+    log_stderr.setLevel(logging.DEBUG if verbose else logging.INFO)
     root.addHandler(log_stderr)
 
     if filename:
@@ -74,6 +74,7 @@ def process_command_line(args):
     parser.add_argument('-L', '--log-file', type=str, help='log file path')
     parser.add_argument('--yt-login', type=str, help='youtube login (email)')
     parser.add_argument('--yt-password', type=str, help='youtube password')
+    parser.add_argument('-v', '--verbose', action='store_true', help='debugging output')
     subparsers = parser.add_subparsers(help='description', metavar='COMMAND', title='commands')
 
     parser_unpack = subparsers.add_parser('unpack', help='unpack .zip archive')
@@ -115,7 +116,7 @@ def process_command_line(args):
 
 def main(args):
     opts = process_command_line(args)
-    setup_logging(opts.log_file)
+    setup_logging(opts.log_file, opts.verbose)
     logging.info('ektobot started')
 
     exitcode = 0
