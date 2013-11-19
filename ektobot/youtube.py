@@ -36,8 +36,6 @@ templates = {
 def ytlogin(email, passwd, dry_run=False):
     import gdata.youtube.service
 
-    (email, passwd) = ask_email_password(email, passwd)
-
     yt_service = gdata.youtube.service.YouTubeService()
     #yt_service.ssl = True
     yt_service.developer_key = 'AI39si5d9grkxFwwm603wvh2toZxshBqVkCWalTT3UXB4b3W3TJz0bCwBv0qqRN9LeQDz0FAXOfCaSW35mAbtj3pnI8cXKu7YA'
@@ -50,7 +48,7 @@ def ytlogin(email, passwd, dry_run=False):
 
     return yt_service
 
-def ytupload(dirname, dry_run, email, passwd, url=None):
+def ytupload(dirname, dry_run, auth, url=None):
     import gdata.youtube
 
     logger = logging.getLogger('youtube')
@@ -101,7 +99,7 @@ def ytupload(dirname, dry_run, email, passwd, url=None):
     if url and 'ektoplazm.com' in url:
         desc_template = templates['ektoplazm']
 
-    yt_service = ytlogin(email, passwd, dry_run)
+    yt_service = ytlogin(auth.yt_login, auth.yt_password, dry_run)
 
     for trk in meta['tracks']:
         filename = os.path.join(dirname, trk['video_file'])

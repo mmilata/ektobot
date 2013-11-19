@@ -6,7 +6,7 @@ import argparse
 
 from state import State
 from youtube import ytupload
-from utils import load_config
+from utils import load_config, AuthData
 from unpack import unpack
 from video_convert import videos
 from network import watch_rss, process_url, process_list
@@ -52,8 +52,8 @@ def set_defaults_from_config(cfgfile, parser):
         'log_file':       ('main', 'log_file', os.path.expanduser),
         'state_file':     ('main', 'state_file', os.path.expanduser),
         'keep_tempfiles': ('main', 'keep_tempfiles', tobool),
-        'login':    ('youtube', 'login', None),
-        'password': ('youtube', 'password', None),
+        'yt_login':    ('youtube', 'login', None),
+        'yt_password': ('youtube', 'password', None),
     }
 
     for opt_name, (section, key, f) in config_subs.iteritems():
@@ -70,10 +70,10 @@ def process_command_line(args):
     parser.add_argument('-c', '--config', type=str, help='configuration file')
     parser.add_argument('-m', '--state-file', type=str, help='state file (meta)'),
     parser.add_argument('-n', '--dry-run', action='store_true', help='do not write/upload anything')
-    parser.add_argument('-l', '--login', type=str, help='youtube login (email)')
-    parser.add_argument('-p', '--password', type=str, help='youtube password')
     parser.add_argument('-k', '--keep-tempfiles', action='store_true', help='do not delete the downloaded and generated files')
     parser.add_argument('-L', '--log-file', type=str, help='log file path')
+    parser.add_argument('--yt-login', type=str, help='youtube login (email)')
+    parser.add_argument('--yt-password', type=str, help='youtube password')
     subparsers = parser.add_subparsers(help='description', metavar='COMMAND', title='commands')
 
     parser_unpack = subparsers.add_parser('unpack', help='unpack .zip archive')
@@ -121,6 +121,10 @@ def main(args):
     exitcode = 0
 
     try:
+        auth = AuthData(
+            yt_login=opts.yt_login,
+            yt_password=opts.yt_password,
+        )
         if opts.what in ('set-url', 'rss', 'url', 'list'):
             meta = State(opts.state_file)
 
@@ -129,16 +133,16 @@ def main(args):
         elif opts.what == 'videos':
             videos(opts.dir, opts.dry_run, opts.outdir, opts.image)
         elif opts.what == 'youtube':
-            ytupload(opts.dir, opts.dry_run, opts.login, opts.password, opts.url)
+            ytupload(opts.dir, opts.dry_run, auth, opts.url)
         elif opts.what == 'set-url':
             meta.feed = opts.url
             meta.save(dry_run=opts.dry_run)
         elif opts.what == 'rss':
-            watch_rss(meta, opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles) #tmpdir, sleep interval
+            watch_rss(meta, opts.dry_run, auth=auth, keep=opts.keep_tempfiles) #tmpdir, sleep interval
         elif opts.what == 'url':
-            process_url(meta, opts.url, zip_url=None, dry_run=opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles)
+            process_url(meta, opts.url, zip_url=None, dry_run=opts.dry_run, auth=auth, keep=opts.keep_tempfiles)
         elif opts.what == 'list':
-            process_list(opts.state_file, opts.urls, dry_run=opts.dry_run, email=opts.login, passwd=opts.password, keep=opts.keep_tempfiles, retry=opts.retry_failing)
+            process_list(opts.state_file, opts.urls, dry_run=opts.dry_run, auth=auth, keep=opts.keep_tempfiles, retry=opts.retry_failing)
         else:
             assert False
     except KeyboardInterrupt:

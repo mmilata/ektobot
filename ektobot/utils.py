@@ -47,6 +47,33 @@ def StdioString(init_stdin=""):
         sys.stdout = orig_out
         sys.stderr = orig_err
 
+class AuthData(object):
+    def __init__(self, **kwargs):
+        self.fields = {
+            'yt_login': 'youtube login',
+            'yt_password': 'youtube password',
+            'sc_login': 'soundcloud login',
+            'sc_password': 'soundcloud password',
+            'sc_client_id': 'soundcloud client id',
+            'sc_client_secret': 'soundcloud client secret'
+        }
+
+        for (k, v) in kwargs.items():
+            assert k in self.fields
+            if v:
+                self.__dict__[k] = v
+
+    def __getattr__(self, attr):
+        if attr in self.fields:
+            if 'password' in attr:
+                v = getpass.getpass(self.fields[attr] + ': ')
+            else:
+                v = raw_input(self.fields[attr] + ': ')
+            self.__dict__[attr] = v
+            return v
+        else:
+            raise AttributeError(attr)
+
 def run(args):
     debugstr = args[0] + ' ' + ' '.join(map(lambda s: "'{0}'".format(s), args[1:]))
     logger = logging.getLogger('run')
@@ -69,15 +96,6 @@ def read_dirmeta(dirname, filename='ektobot.json'):
     with open(os.path.join(dirname, filename), 'r') as fh:
         meta = json.load(fh)
     return meta
-
-def ask_email_password(email=None, passwd=None):
-    if not email:
-        email = raw_input('youtube login: ')
-
-    if not passwd:
-        passwd = getpass.getpass('password: ')
-
-    return (email, passwd)
 
 def load_config(filename):
     res = {}
