@@ -77,7 +77,8 @@ def download_archive(page_url, directory, zip_url=None):
         html = opener.open(page_url).read()
         # fragile ...
         m = re.search(r'\<a href="([^"]+)"\>MP3 Download', html)
-        assert m != None
+        if not m:
+            raise ValueError('Archive link not found')
         zip_url = m.group(1)
         logger.debug(u'Found archive url: {0}'.format(zip_url))
 
