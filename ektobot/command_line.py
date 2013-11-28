@@ -13,7 +13,7 @@ from network import watch_rss, process_url, process_list
 
 def setup_logging(filename=None, verbose=False):
     fmt = logging.Formatter(
-            fmt='%(asctime)s %(name)-8s %(levelname)-7s %(message)s',
+            fmt='%(asctime)s %(levelname)-7s %(name)-8s %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
     root = logging.getLogger('')
