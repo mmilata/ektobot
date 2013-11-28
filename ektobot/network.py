@@ -1,19 +1,16 @@
 
-import re
-import cgi
 import json
 import time
 import urllib
 import urllib2
 import os.path
 import logging
-import urlparse
-import contextlib
 
 from unpack import unpack
 from utils import TemporaryDir, USER_AGENT
 from video_convert import videos
 from youtube import ytupload
+from source import Ektoplazm
 
 def watch_rss(meta, dry_run, auth=None, keep=False, sleep_interval=30*60):
     import feedparser
@@ -55,57 +52,8 @@ def process_list(meta, listfile, dry_run, auth=None, keep=False, retry=False):
         process_url(meta, url, None, dry_run, auth=auth, keep=keep)
 
 def download_archive(page_url, directory, zip_url=None):
-    logger = logging.getLogger('dl')
-
-    def url_file_name(fh):
-        try:
-            _, params = cgi.parse_header(fh.headers['content-disposition'])
-            return params['filename']
-        except KeyError:
-            pass # header not found, fall back on parsing url
-
-        url = urlparse.urlparse(fh.geturl())
-        path = urllib.unquote_plus(url.path)
-        fname = path.rsplit('/', 1)[-1]
-        logger.debug(u'Content-disposition missing, fallback file name {0}'.format(fname))
-        return fname
-
-    opener = urllib2.build_opener()
-    opener.addheaders = [('user-agent', USER_AGENT)]
-
-    if not zip_url:
-        html = opener.open(page_url).read()
-        # fragile ...
-        m = re.search(r'\<a href="([^"]+)"\>MP3 Download', html)
-        if not m:
-            raise ValueError('Archive link not found')
-        zip_url = m.group(1)
-        logger.debug(u'Found archive url: {0}'.format(zip_url))
-
-    with contextlib.closing(opener.open(zip_url)) as inf:
-        chunk_size = 8192
-        total_size = int(inf.headers['content-length'])
-        read = 0
-        nsteps = 10
-        step = int(total_size / nsteps)
-
-        archive = os.path.join(directory, url_file_name(inf))
-
-        with open(archive, 'w') as outf:
-            logger.info(u'Download size {0}M, destination {1}'.format(total_size/1024/1024, archive))
-
-            while True:
-                chunk = inf.read(chunk_size)
-                if not chunk:
-                    break
-                outf.write(chunk)
-
-                read += len(chunk)
-                if read / step > (read-len(chunk)) / step:
-                    logger.debug(u'{0} %'.format(int(100.0*read/step/nsteps)))
-
-    logger.debug('Download complete')
-    return archive
+    e = Ektoplazm(page_url)
+    return e.download_archive(directory)
 
 def process_url(meta, page_url, zip_url=None, dry_run=False, auth=None, keep=False):
     logger = logging.getLogger('url')
@@ -113,7 +61,7 @@ def process_url(meta, page_url, zip_url=None, dry_run=False, auth=None, keep=Fal
 
     try:
         with TemporaryDir('ektobot', keep=keep) as dname:
-            archive = download_archive(page_url, dname, zip_url)
+            archive = download_archive(page_url, dname)
             mp3_dir = unpack(archive, dry_run=False, outdir=dname)
             video_dir = os.path.join(dname, 'video')
             videos(mp3_dir, dry_run=False, outdir=video_dir, cover=None)

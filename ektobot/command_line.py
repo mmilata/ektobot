@@ -141,7 +141,7 @@ def main(args):
         elif opts.what == 'rss':
             watch_rss(meta, opts.dry_run, auth=auth, keep=opts.keep_tempfiles) #tmpdir, sleep interval
         elif opts.what == 'url':
-            process_url(meta, opts.url, zip_url=None, dry_run=opts.dry_run, auth=auth, keep=opts.keep_tempfiles)
+            process_url(meta, opts.url, dry_run=opts.dry_run, auth=auth, keep=opts.keep_tempfiles)
         elif opts.what == 'list':
             process_list(opts.state_file, opts.urls, dry_run=opts.dry_run, auth=auth, keep=opts.keep_tempfiles, retry=opts.retry_failing)
         else:
