@@ -25,7 +25,7 @@ ex_uni = '[oddělení]\nklíč = žluťoučká hodnota'
 
 class TestConfig(unittest.TestCase):
     def setUp(self):
-        with TemporaryDir('ektobot.test_config', keep=True) as tmpdir:
+        with TemporaryDir('ektobot.test_config', keep=KEEP) as tmpdir:
             pass
         self.tmpdir = tmpdir
         self.cfgfile = os.path.join(tmpdir, CFGNAME)
