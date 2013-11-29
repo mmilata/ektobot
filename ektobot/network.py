@@ -50,7 +50,9 @@ def process_list(meta, listfile, dry_run, auth=None, keep=False, retry=False):
         process_url(meta, url, None, dry_run, auth=auth, keep=keep)
 
 def download_archive(page_url, directory, zip_url=None):
+    logger = logging.getLogger('tags')
     e = Ektoplazm(page_url)
+    logger.info(u', '.join(e.tags))
     return e.download_archive(directory)
 
 def process_url(meta, page_url, zip_url=None, dry_run=False, auth=None, keep=False):
