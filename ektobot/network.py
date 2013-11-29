@@ -1,13 +1,11 @@
 
 import json
 import time
-import urllib
-import urllib2
 import os.path
 import logging
 
 from unpack import unpack
-from utils import TemporaryDir, USER_AGENT
+from utils import TemporaryDir
 from video_convert import videos
 from youtube import ytupload
 from source import Ektoplazm
