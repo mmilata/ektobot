@@ -106,8 +106,7 @@ def videos(dirname, dry_run, outdir=None, cover=None):
         meta['tracks'][-1]['video_file'] = os.path.basename(outfile)
         infile = os.path.join(dirname, infile)
 
-        logger.info(u'Converting {0}'.format(clean_string(infile)))
-        logger.debug(u'        to {0}'.format(outfile))
+        logger.info(u'Converting {0}'.format(os.path.basename(clean_string(infile))))
         cmdline = ['ffmpeg',
                    '-loglevel', 'error', # be quiet
                    '-n',                 # do not overwrite output files
