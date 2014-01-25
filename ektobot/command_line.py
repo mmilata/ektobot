@@ -68,7 +68,7 @@ def set_defaults_from_config(cfgfile, parser):
 def process_command_line(args):
     parser = argparse.ArgumentParser(prog='PROG')
     parser.add_argument('-c', '--config', type=str, help='configuration file')
-    parser.add_argument('-m', '--state-file', type=str, help='state file (meta)'),
+    parser.add_argument('-m', '--state-file', type=str, help='state file (meta)')
     parser.add_argument('-n', '--dry-run', action='store_true', help='do not write/upload anything')
     parser.add_argument('-k', '--keep-tempfiles', action='store_true', help='do not delete the downloaded and generated files')
     parser.add_argument('-L', '--log-file', type=str, help='log file path')

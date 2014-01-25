@@ -113,7 +113,7 @@ def videos(dirname, dry_run, outdir=None, cover=None):
                    '-loop', '1',         # video = image
                    '-i', cover,          # image
                    '-i', infile,         # audio
-                   '-vf', 'scale=min(800\,in_w):-1', # scale the image down to (at most) 800px width
+                   '-vf', 'scale=min(800\\,in_w):-1', # scale the image down to (at most) 800px width
                    '-r', '1',            # 1fps
                    '-acodec', 'copy',    # do not recode audio
                    '-shortest',          # stop when the audio stops

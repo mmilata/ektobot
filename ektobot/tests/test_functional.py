@@ -5,7 +5,6 @@ import json
 import shutil
 import os.path
 import unittest
-import StringIO
 
 from ektobot.utils import StdioString, TemporaryDir
 from ektobot.command_line import main

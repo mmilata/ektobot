@@ -10,7 +10,7 @@ from utils import write_dirmeta
 
 # TODO: source-specific
 def parse_name(filename):
-    (dn, fn) = os.path.split(filename)
+    fn = os.path.basename(filename)
     m = re.match(r'^(.+) - (.+) - (\d+) - MP3\.zip$', fn)
     return {
         'artist': m.group(1),

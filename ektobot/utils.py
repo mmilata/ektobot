@@ -75,7 +75,7 @@ class AuthData(object):
             raise AttributeError(attr)
 
 def run(args):
-    debugstr = args[0] + ' ' + ' '.join(map(lambda s: "'{0}'".format(s), args[1:]))
+    debugstr = args[0] + ' ' + ' '.join(map("'{0}'".format, args[1:]))
     logger = logging.getLogger('run')
     logger.debug(debugstr)
 

@@ -69,8 +69,7 @@ class State(object):
         if dry_run:
             return
 
-        (directory, base) = os.path.split(self.filename)
-        if not os.path.isdir(directory):
+        if not os.path.isdir(os.path.dirname(self.filename)):
             logger.info(u'Creating directory {0}'.format(directory))
             os.makedirs(directory, 0700)
 
