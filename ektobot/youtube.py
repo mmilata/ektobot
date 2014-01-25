@@ -5,6 +5,7 @@ import logging
 import os.path
 
 from utils import *
+from source import Ektoplazm
 
 old_ektoplazm_description = u'''Artist: {artist}
 Track: {track}
@@ -19,7 +20,9 @@ Artist: {artist}
 Track: {track}
 Album: {album}
 Track number: {trackno}
-Tags: {tags}'''
+
+Tags: {tags}
+License: {license}'''
 
 
 default_description = u'''Artist: {artist}
@@ -49,7 +52,7 @@ def ytlogin(email, passwd, dry_run=False):
 
     return yt_service
 
-def ytupload(dirname, dry_run, auth, url=None, tags=set()):
+def ytupload(dirname, dry_run, auth, url=None):
     import gdata.youtube
 
     logger = logging.getLogger('youtube')
@@ -99,6 +102,17 @@ def ytupload(dirname, dry_run, auth, url=None, tags=set()):
                 playlist_entry = yt_service.AddPlaylistVideoEntryToPlaylist(playlist_uri, video_id)
 
     meta = read_dirmeta(dirname)
+    if 'url' not in meta:
+        if url:
+            e = Ektoplazm(url)
+            meta['url'] = url
+            meta['license'] = e.license.url
+            meta['tags'] = e.tags
+        else:
+            meta['url'] = 'http://example.org'
+            meta['license'] = ''
+            meta['tags'] = set()
+
     playlist_ids = []
 
     desc_template = templates['default']
@@ -115,14 +129,15 @@ def ytupload(dirname, dry_run, auth, url=None, tags=set()):
             track = trk['track'],
             album = meta['album'],
             trackno = trk['num'],
-            tags = ', '.join(tags),
-            albumurl = url if url else 'http://www.example.org/' #'http://www.ektoplazm.com/'
+            tags = ', '.join(meta['tags']),
+            license = meta['license'],
+            albumurl = meta['url']
         )
         logger.info(u'Uploading {0}'.format(title))
         logger.debug(u'Filename {0}'.format(filename))
         logger.debug(u'Description:\n{0}'.format(description))
         if not dry_run:
-            vid_id = yt_upload_video(yt_service, filename, title, description, tags)
+            vid_id = yt_upload_video(yt_service, filename, title, description, meta['tags'])
             playlist_ids.append(vid_id)
         logger.debug('Upload complete')
         time.sleep(60) # youtube's not happy when we're uploading too fast
