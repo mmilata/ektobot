@@ -92,3 +92,6 @@ class State(object):
             us = UrlState(url)
             self.urls[url] = us
             return us
+
+    def is_processed(self, url):
+        return url in self.urls

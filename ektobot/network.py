@@ -25,7 +25,7 @@ def watch_rss(meta, dry_run, auth=None, keep=False, sleep_interval=30*60):
         feed = feedparser.parse(meta.feed) # XXX may throw exception
 
         for entry in feed.entries:
-            if entry.link not in meta.urls:
+            if not meta.is_processed(entry.link):
                 process_url(meta, entry.link, mp3_link(entry), dry_run, auth=auth,
                             keep=keep)
         try:
@@ -41,7 +41,7 @@ def process_list(meta, listfile, dry_run, auth=None, keep=False, retry=False):
         urls = json.load(fh)
 
     for url in urls:
-        if url in meta.urls:
+        if not meta.is_processed(url):
             if retry and meta.url(url).youtube == 'failed':
                 logger.debug('Retrying previously failed url {0}'.format(url))
             else:
