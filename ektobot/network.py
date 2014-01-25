@@ -49,23 +49,19 @@ def process_list(meta, listfile, dry_run, auth=None, keep=False, retry=False):
 
         process_url(meta, url, None, dry_run, auth=auth, keep=keep)
 
-def download_archive(page_url, directory, zip_url=None):
-    logger = logging.getLogger('tags')
-    e = Ektoplazm(page_url)
-    logger.info(u', '.join(e.tags))
-    return e.download_archive(directory)
-
-def process_url(meta, page_url, zip_url=None, dry_run=False, auth=None, keep=False):
+def process_url(meta, page_url, dry_run=False, auth=None, keep=False):
     logger = logging.getLogger('url')
     logger.info(u'Processing {0}'.format(page_url))
 
     try:
         with TemporaryDir('ektobot', keep=keep) as dname:
-            archive = download_archive(page_url, dname)
+            e = Ektoplazm(page_url)
+            logger.info(u'tags: ' + u', '.join(e.tags))
+            archive = e.download_archive(dname)
             mp3_dir = unpack(archive, dry_run=False, outdir=dname)
             video_dir = os.path.join(dname, 'video')
             videos(mp3_dir, dry_run=False, outdir=video_dir, cover=None)
-            ytupload(video_dir, dry_run=dry_run, auth=auth, url=page_url)
+            ytupload(video_dir, dry_run=dry_run, auth=auth, url=page_url, tags=e.tags)
     except KeyboardInterrupt:
         raise
     except:

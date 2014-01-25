@@ -18,7 +18,8 @@ ektoplazm_description = u'''Download the full album from Ektoplazm: {albumurl}
 Artist: {artist}
 Track: {track}
 Album: {album}
-Track number: {trackno}'''
+Track number: {trackno}
+Tags: {tags}'''
 
 
 default_description = u'''Artist: {artist}
@@ -48,16 +49,20 @@ def ytlogin(email, passwd, dry_run=False):
 
     return yt_service
 
-def ytupload(dirname, dry_run, auth, url=None):
+def ytupload(dirname, dry_run, auth, url=None, tags=set()):
     import gdata.youtube
 
     logger = logging.getLogger('youtube')
 
-    def yt_upload_video(yt_service, filename, title, description):
+    def yt_upload_video(yt_service, filename, title, description, tags):
+        keywords = 'ektoplazm, music'
+        if tags:
+            keywords += (', ' + ', '.join(tags))
+
         media_group = gdata.media.Group(
             title       = gdata.media.Title(text=title),
             description = gdata.media.Description(description_type='plain', text=description),
-            keywords    = gdata.media.Keywords(text='ektoplazm, music'),
+            keywords    = gdata.media.Keywords(text=keywords),
             category    = gdata.media.Category(text='Music', label='Music', scheme='http://gdata.youtube.com/schemas/2007/categories.cat'),
             player      = None
         )
@@ -109,13 +114,14 @@ def ytupload(dirname, dry_run, auth, url=None):
             track = trk['track'],
             album = meta['album'],
             trackno = trk['num'],
+            tags = ', '.join(tags),
             albumurl = url if url else 'http://www.example.org/' #'http://www.ektoplazm.com/'
         )
         logger.info(u'Uploading {0}'.format(title))
         logger.debug(u'Filename {0}'.format(filename))
         logger.debug(u'Description:\n{0}'.format(description))
         if not dry_run:
-            vid_id = yt_upload_video(yt_service, filename, title, description)
+            vid_id = yt_upload_video(yt_service, filename, title, description, tags)
             playlist_ids.append(vid_id)
         logger.debug('Upload complete')
         time.sleep(60) # youtube's not happy when we're uploading too fast
