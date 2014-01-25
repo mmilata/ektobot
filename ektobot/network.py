@@ -15,19 +15,12 @@ def watch_rss(meta, dry_run, auth=None, keep=False, sleep_interval=30*60):
 
     logger = logging.getLogger('rss')
 
-    def mp3_link(e):
-        for l in e.links:
-            if 'rel' in l and l.rel == 'enclosure' and 'title' in l and l.title == 'MP3 Download':
-                return l.href
-        return None
-
     while True:
         feed = feedparser.parse(meta.feed) # XXX may throw exception
 
         for entry in feed.entries:
             if not meta.is_processed(entry.link):
-                process_url(meta, entry.link, mp3_link(entry), dry_run, auth=auth,
-                            keep=keep)
+                process_url(meta, entry.link, dry_run, auth=auth, keep=keep)
         try:
             time.sleep(sleep_interval)
         except KeyboardInterrupt:
@@ -47,7 +40,7 @@ def process_list(meta, listfile, dry_run, auth=None, keep=False, retry=False):
             else:
                 continue
 
-        process_url(meta, url, None, dry_run, auth=auth, keep=keep)
+        process_url(meta, url, dry_run, auth=auth, keep=keep)
 
 def process_url(meta, page_url, dry_run=False, auth=None, keep=False):
     logger = logging.getLogger('url')

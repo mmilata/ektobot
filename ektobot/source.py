@@ -68,7 +68,7 @@ class Source(object):
         return set()
 
     def get_archive_link(self):
-        raise NotImplemented('archive_link')
+        raise NotImplementedError('archive_link')
 
     def _url_file_name(self, fh):
         try:
