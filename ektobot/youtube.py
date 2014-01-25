@@ -94,6 +94,7 @@ def ytupload(dirname, dry_run, auth, url=None, tags=set()):
         if not dry_run:
             playlist = yt_service.AddPlaylist(title, description)
             playlist_uri = playlist.feed_link[0].href #magic...
+            logger.info(u'Playlist URI: {0}'.format(playlist_uri)) #remove me later
             for video_id in ids:
                 playlist_entry = yt_service.AddPlaylistVideoEntryToPlaylist(playlist_uri, video_id)
 
