@@ -53,12 +53,15 @@ def process_url(meta, page_url, dry_run=False, auth=None, keep=False):
     logger = logging.getLogger('url')
     logger.info(u'Processing {0}'.format(page_url))
 
+    urlmeta = meta.url(page_url)
     try:
         with TemporaryDir('ektobot', keep=keep) as dname:
             e = Ektoplazm(page_url)
             logger.info(u'tags: ' + u', '.join(e.tags))
             archive = e.download_archive(dname)
-            mp3_dir = unpack(archive, dry_run=False, outdir=dname)
+            urlmeta.tags = e.tags
+            urlmeta.license = e.license.url
+            mp3_dir = unpack(archive, dry_run=False, outdir=dname, urlmeta=urlmeta)
             video_dir = os.path.join(dname, 'video')
             videos(mp3_dir, dry_run=False, outdir=video_dir, cover=None)
             ytupload(video_dir, dry_run=dry_run, auth=auth, url=page_url, tags=e.tags)
@@ -71,5 +74,5 @@ def process_url(meta, page_url, dry_run=False, auth=None, keep=False):
         logger.info(u'Album successfully uploaded')
         result = 'done-unknown-id'
 
-    meta.url(page_url).youtube = result
+    urlmeta.youtube = result
     meta.save(dry_run=dry_run)

@@ -12,11 +12,17 @@ class UrlState(object):
 
         self.url = url
         self.youtube = j.get('youtube')
+        self.license = j.get('license')
+        self.tags = set(j.get('tags', []))
 
     def to_json(self):
         res = {}
         if self.youtube:
             res['youtube'] = self.youtube
+        if self.license:
+            res['license'] = self.license
+        if self.tags:
+            res['tags'] = list(self.tags)
 
         return res
 

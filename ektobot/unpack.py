@@ -8,6 +8,7 @@ import zipfile
 
 from utils import write_dirmeta
 
+# TODO: source-specific
 def parse_name(filename):
     (dn, fn) = os.path.split(filename)
     m = re.match(r'^(.+) - (.+) - (\d+) - MP3\.zip$', fn)
@@ -20,7 +21,8 @@ def parse_name(filename):
 def dir_name(album):
     return album['artist'].replace(' ', '_') + '_-_' + album['album'].replace(' ', '_') + '/'
 
-def unpack(archive, dry_run, outdir='.'):
+# TODO: source-specific
+def unpack(archive, dry_run, outdir='.', urlmeta=None):
     logger = logging.getLogger('unpack')
     #TODO write to temporary directory first (album artist fallback to dir name)
     #metadata: album artist + album name
@@ -44,6 +46,11 @@ def unpack(archive, dry_run, outdir='.'):
             src = os.path.join(nested_dir, f)
             shutil.move(src, dirname)
         shutil.rmtree(nested_dir)
+
+    if urlmeta:
+        album['url'] = urlmeta.url
+        album['license'] = urlmeta.license
+        album['tags'] = list(urlmeta.tags)
 
     write_dirmeta(dirname, album, dry_run)
 
