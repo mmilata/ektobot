@@ -74,7 +74,7 @@ def ytupload(dirname, dry_run, auth, url=None):
         new_entry = yt_service.InsertVideoEntry(video_entry, filename)
         return new_entry.id.text.split('/')[-1]
 
-    def yt_create_playlist(yt_service, meta, ids, dry_run=False):
+    def yt_create_playlist(yt_service, meta, video_ids, dry_run=False):
         formats_artist = [
             u'{artist} - {album} ({year})',
             u'{artist} - {album}',
@@ -96,10 +96,15 @@ def ytupload(dirname, dry_run, auth, url=None):
 
         if not dry_run:
             playlist = yt_service.AddPlaylist(title, description)
+            playlist_id = playlist.id.text.split('/')[-1]
             playlist_uri = playlist.feed_link[0].href #magic...
-            logger.info(u'Playlist URI: {0}'.format(playlist_uri)) #remove me later
-            for video_id in ids:
+            logger.debug(u'Playlist ID: {0}'.format(playlist_id))
+            for video_id in video_ids:
                 playlist_entry = yt_service.AddPlaylistVideoEntryToPlaylist(playlist_uri, video_id)
+        else:
+            playlist_id = 'dry-run-playlist-id'
+
+        return playlist_id
 
     meta = read_dirmeta(dirname)
     if 'url' not in meta:
@@ -113,7 +118,7 @@ def ytupload(dirname, dry_run, auth, url=None):
             meta['license'] = ''
             meta['tags'] = set()
 
-    playlist_ids = []
+    video_ids = []
 
     desc_template = templates['default']
     if url and 'ektoplazm.com' in url:
@@ -138,11 +143,12 @@ def ytupload(dirname, dry_run, auth, url=None):
         logger.debug(u'Description:\n{0}'.format(description))
         if not dry_run:
             vid_id = yt_upload_video(yt_service, filename, title, description, meta['tags'])
-            playlist_ids.append(vid_id)
+            video_ids.append(vid_id)
         logger.debug('Upload complete')
         time.sleep(60) # youtube's not happy when we're uploading too fast
 
-    yt_create_playlist(yt_service, meta, playlist_ids, dry_run)
+    playlist_id = yt_create_playlist(yt_service, meta, video_ids, dry_run)
+    return (playlist_id, video_ids)
 
 #def parse_format(string, fmt, variables):
 #    # create RE

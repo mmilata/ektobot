@@ -5,20 +5,43 @@ import errno
 import os.path
 import logging
 
+CURRENT_VERSION = 2
+
+class YouTubeState(object):
+    def __init__(self, j=None):
+        if not j:
+            j = {}
+
+        self.result = j.get('result')
+        self.playlist = j.get('playlist')
+        self.videos = j.get('videos')
+
+    def to_json(self):
+        res = {}
+
+        if self.result:
+            res['result'] = self.result
+        if self.playlist:
+            res['playlist'] = self.playlist
+        if self.videos:
+            res['videos'] = self.videos
+
+        return res
+
 class UrlState(object):
     def __init__(self, url, j=None):
         if not j:
             j = {}
 
         self.url = url
-        self.youtube = j.get('youtube')
+        self.youtube = YouTubeState(j.get('youtube'))
         self.license = j.get('license')
         self.tags = set(j.get('tags', []))
 
     def to_json(self):
         res = {}
         if self.youtube:
-            res['youtube'] = self.youtube
+            res['youtube'] = self.youtube.to_json()
         if self.license:
             res['license'] = self.license
         if self.tags:
@@ -37,13 +60,15 @@ class State(object):
                 j = json.load(fh)
         except IOError as e:
             if e.errno == errno.ENOENT:
-                j = { 'version': 1 }
+                j = { 'version': CURRENT_VERSION }
             else:
                 raise
 
         # detect old version
         if 'version' not in j:
             j = self.v0_to_v1(j)
+        if j['version'] == 1:
+            j = self.v1_to_v2(j)
 
         self.feed = j.get('feed')
         self.urls = {}
@@ -51,7 +76,7 @@ class State(object):
             self.urls[url] = UrlState(url, urlstate)
 
     def to_json(self):
-        res = { 'version': 1 }
+        res = { 'version': CURRENT_VERSION }
         res['urls'] = {}
 
         if self.feed:
@@ -90,6 +115,20 @@ class State(object):
 
         res['urls'] = urls
         return res
+
+    @staticmethod
+    def v1_to_v2(j):
+        j['version'] = 2
+        for urlstate in j['urls'].itervalues():
+            old_yt = urlstate['youtube']
+            assert old_yt in ['done-unknown-id', 'failed']
+            if old_yt == 'done-unknown-id':
+                new_yt = { 'result': 'done' }
+            else:
+                new_yt = { 'result': 'failed' }
+            urlstate['youtube'] = new_yt
+
+        return j
 
     def url(self, url):
         if url in self.urls:

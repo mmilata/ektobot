@@ -7,22 +7,54 @@ import os.path
 import unittest
 
 from ektobot.utils import TemporaryDir
-from ektobot.state import State, UrlState
+from ektobot.state import State, UrlState, YouTubeState
 
 KEEP = False
 STATENAME = 'ektobot.json'
 URL1 = 'http://example.com'
 URL2 = 'http://localhost'
 URL3 = 'http://127.0.0.1'
+LICENSE_URL = 'http://creativecommons.org/licenses/by-nc-sa/3.0/'
 
-ex_s_1 = {
+ex_v2_s1 = {
+    'version': 2,
+    'feed': URL1,
+    'urls': {
+        URL2: {'youtube': {'result': 'done'}}
+    }
+}
+ex_v2_s2 = {
+    'version': 2,
+    'feed': URL1,
+    'urls': {
+        URL2: {'youtube': {'result': 'done'}},
+        URL3: {'youtube': {'result': 'failed'}},
+    }
+}
+ex_v2_s3 = {
+    'version': 2,
+    'feed': URL1,
+    'urls': {
+        URL2: {
+            'youtube': {
+                'result': 'done',
+                'playlist': 'PLjAN2Ez8EzGrUMIevZzvV894eQiEA9TnY',
+                'videos': ['JV9XAsbqgHY', 'r6XRC13Bskk']
+            },
+            'tags': ['Grindcore', 'Prog Death'],
+            'license': LICENSE_URL,
+        },
+        URL3: {'youtube': {'result': 'failed'}}
+    }
+}
+ex_v1_s1 = {
     'version': 1,
     'feed': URL1,
     'urls': {
         URL2: {'youtube': 'done-unknown-id'}
     }
 }
-ex_s_2 = {
+ex_v1_s2 = {
     'version': 1,
     'feed': URL1,
     'urls': {
@@ -30,7 +62,7 @@ ex_s_2 = {
         URL3: {'youtube': 'failed'}
     }
 }
-ex_old = {
+ex_v0 = {
     'url': URL1,
     'albums': { URL2: 'OK' }
 }
@@ -52,7 +84,7 @@ class TestState(unittest.TestCase):
             json.dump(j, fh, indent=2, sort_keys=True)
 
     def test_simple(self):
-        self.prepare_file(ex_s_1)
+        self.prepare_file(ex_v2_s1)
         orig_contents = open(self.statefile, 'r').read()
         state = State(self.statefile)
 
@@ -62,26 +94,40 @@ class TestState(unittest.TestCase):
         self.assertIsInstance(state.urls[URL2], UrlState)
 
         urlstate = state.urls[URL2]
-
         self.assertEqual(urlstate.url, URL2)
-        self.assertEqual(urlstate.youtube, 'done-unknown-id')
 
-        self.assertEqual(state.to_json(), ex_s_1)
+        self.assertIsInstance(urlstate.youtube, YouTubeState)
+        self.assertEqual(urlstate.youtube.result, 'done')
+        self.assertEqual(state.to_json(), ex_v2_s1)
 
-        state.url(URL3).youtube = 'failed'
-        self.assertEqual(state.to_json(), ex_s_2)
+        state.url(URL3).youtube.result = 'failed'
+        self.assertEqual(state.to_json(), ex_v2_s2)
+
+        state.url(URL2).youtube.playlist = 'PLjAN2Ez8EzGrUMIevZzvV894eQiEA9TnY'
+        state.url(URL2).youtube.videos = ['JV9XAsbqgHY', 'r6XRC13Bskk']
+        state.url(URL2).tags = ['Grindcore', 'Prog Death']
+        state.url(URL2).license = LICENSE_URL
+        self.assertEqual(state.to_json(), ex_v2_s3)
 
         state.save()
         new_contents = open(self.statefile, 'r').read()
         self.assertNotEqual(orig_contents, new_contents)
-        self.assertNotEqual(len(orig_contents), len(new_contents))
 
-    def test_v0_to_v1(self):
-        self.prepare_file(ex_old)
+    def test_v0_to_v2(self):
+        self.prepare_file(ex_v0)
         state = State(self.statefile)
 
         self.assertEqual(state.feed, URL1)
-        self.assertEqual(state.to_json(), ex_s_1)
+        self.assertEqual(state.to_json(), ex_v2_s1)
+
+    def test_v1_to_v2(self):
+        self.prepare_file(ex_v1_s1)
+        state = State(self.statefile)
+        self.assertEqual(state.to_json(), ex_v2_s1)
+
+        self.prepare_file(ex_v1_s2)
+        state = State(self.statefile)
+        self.assertEqual(state.to_json(), ex_v2_s2)
 
     def test_create(self):
         dotdir = os.path.join(self.tmpdir, '.ektobot')

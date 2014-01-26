@@ -86,7 +86,7 @@ class TestFunctional(unittest.TestCase):
             meta = json.load(open(statefile, 'r'))
             self.assertIsInstance(meta, dict)
             self.assertIn('feed', meta)
-            rhs = { 'version': 1, 'feed': 'http://example.com', 'urls': {} }
+            rhs = { 'version': 2, 'feed': 'http://example.com', 'urls': {} }
             self.assertEqual(meta, rhs)
 
 
