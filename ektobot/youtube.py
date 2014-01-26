@@ -121,7 +121,7 @@ def ytupload(dirname, dry_run, auth, url=None):
     video_ids = []
 
     desc_template = templates['default']
-    if url and 'ektoplazm.com' in url:
+    if 'ektoplazm.com' in meta['url']:
         desc_template = templates['ektoplazm']
 
     yt_service = ytlogin(auth.yt_login, auth.yt_password, dry_run)
