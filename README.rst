@@ -6,7 +6,7 @@ ektobot
 Tool for manipulating music albums. Written with mp3 archives from
 http://www.ektoplazm.com in mind.
 
-Written by b42 in 2013.
+Written by b42 in 2013-2014.
 
 requirements
 ============
@@ -14,7 +14,8 @@ requirements
 - For encoding videos, you need the ``ffmpeg`` program and ``eyeD3`` python
   module.
 - For youtube uploads, you need to have the ``gdata`` module.
-- For the rss functionality, you need the ``feedparser`` module.
+- For the rss functionality, you need the ``feedparser`` and ``BeautifulSoup``
+  modules.
 
 subcommands
 ===========

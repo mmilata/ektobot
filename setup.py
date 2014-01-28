@@ -19,4 +19,5 @@ setup(name='ektobot',
       scripts=['bin/ektobot'],
       test_suite='nose.collector',
       tests_require=['nose'],
+      install_requires=['eyeD3', 'gdata', 'BeautifulSoup', 'feedparser'],
       license='WTFPL')
