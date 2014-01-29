@@ -55,7 +55,9 @@ class AuthData(object):
             'sc_login': 'soundcloud login',
             'sc_password': 'soundcloud password',
             'sc_client_id': 'soundcloud client id',
-            'sc_client_secret': 'soundcloud client secret'
+            'sc_client_secret': 'soundcloud client secret',
+            'reddit_login': 'reddit login',
+            'reddit_password': 'reddit password',
         }
 
         for (k, v) in kwargs.items():
