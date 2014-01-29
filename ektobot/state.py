@@ -70,6 +70,9 @@ class State(object):
         if j['version'] == 1:
             j = self.v1_to_v2(j)
 
+        if j['version'] != CURRENT_VERSION:
+            raise RuntimeError('Cannot handle version {0} of state file'.format(j['version']))
+
         self.feed = j.get('feed')
         self.urls = {}
         for (url, urlstate) in j.get('urls', {}).iteritems():
