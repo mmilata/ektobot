@@ -73,6 +73,9 @@ The script is quite messy and this documentation incomplete. I doubt anyone
 else will ever use this module - let me know if you want to and I might improve
 the code and/or documentation.
 
+It currently cannot process anything else than archives from Ektoplazm.  Please
+let me know if you have any other use in mind!
+
 license
 =======
 

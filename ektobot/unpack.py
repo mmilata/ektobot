@@ -51,6 +51,9 @@ def unpack(archive, dry_run, outdir='.', urlmeta=None):
         album['url'] = urlmeta.url
         album['license'] = urlmeta.license
         album['tags'] = list(urlmeta.tags)
+        urlmeta.artist = album['artist']
+        urlmeta.title = album['album']
+        urlmeta.year = int(album['year'])
 
     write_dirmeta(dirname, album, dry_run)
 

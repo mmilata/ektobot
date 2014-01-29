@@ -43,6 +43,9 @@ ex_v2_s3 = {
             },
             'tags': ['Grindcore', 'Prog Death'],
             'license': LICENSE_URL,
+            'artist': 'Elvis Presley',
+            'title': 'Best off',
+            'year': 1984,
         },
         URL3: {'youtube': {'result': 'failed'}}
     }
@@ -107,6 +110,9 @@ class TestState(unittest.TestCase):
         state.url(URL2).youtube.videos = ['JV9XAsbqgHY', 'r6XRC13Bskk']
         state.url(URL2).tags = ['Grindcore', 'Prog Death']
         state.url(URL2).license = LICENSE_URL
+        state.url(URL2).artist = 'Elvis Presley'
+        state.url(URL2).title = 'Best off'
+        state.url(URL2).year = 1984
         self.assertEqual(state.to_json(), ex_v2_s3)
 
         state.save()

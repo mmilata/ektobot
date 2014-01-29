@@ -37,6 +37,9 @@ class UrlState(object):
         self.youtube = YouTubeState(j.get('youtube'))
         self.license = j.get('license')
         self.tags = set(j.get('tags', []))
+        self.artist = j.get('artist')
+        self.title = j.get('title')
+        self.year = j.get('year')
 
     def to_json(self):
         res = {}
@@ -46,6 +49,12 @@ class UrlState(object):
             res['license'] = self.license
         if self.tags:
             res['tags'] = list(self.tags)
+        if self.artist:
+            res['artist'] = self.artist
+        if self.title:
+            res['title'] = self.title
+        if self.year:
+            res['year'] = self.year
 
         return res
 
