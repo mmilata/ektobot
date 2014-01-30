@@ -15,6 +15,7 @@ URL1 = 'http://example.com'
 URL2 = 'http://localhost'
 URL3 = 'http://127.0.0.1'
 LICENSE_URL = 'http://creativecommons.org/licenses/by-nc-sa/3.0/'
+REDDIT_URL = 'http://www.reddit.com/r/ektoplazm/comments/1wegg5/ektoplazm_free_music_portal_and_psytrance_netlabel/'
 
 ex_v2_s1 = {
     'version': 2,
@@ -40,6 +41,11 @@ ex_v2_s3 = {
                 'result': 'done',
                 'playlist': 'PLjAN2Ez8EzGrUMIevZzvV894eQiEA9TnY',
                 'videos': ['JV9XAsbqgHY', 'r6XRC13Bskk']
+            },
+            'reddit': {
+                'result': 'posted-link-and-comment',
+                'id': '1wegg5',
+                'url': REDDIT_URL
             },
             'tags': ['Grindcore', 'Prog Death'],
             'license': LICENSE_URL,
@@ -113,6 +119,9 @@ class TestState(unittest.TestCase):
         state.url(URL2).artist = 'Elvis Presley'
         state.url(URL2).title = 'Best off'
         state.url(URL2).year = 1984
+        state.url(URL2).reddit.result = 'posted-link-and-comment'
+        state.url(URL2).reddit.post_id = '1wegg5'
+        state.url(URL2).reddit.url = REDDIT_URL
         self.assertEqual(state.to_json(), ex_v2_s3)
 
         state.save()
