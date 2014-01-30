@@ -1,4 +1,5 @@
 
+import time
 import json
 import urllib
 import urllib2
@@ -14,6 +15,7 @@ class Reddit(object):
         self.dry_run = dry_run
         self.sub = sub
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.last_request_ts = time.time()
 
         # prepare
         cookies = cookielib.CookieJar()
@@ -35,6 +37,12 @@ class Reddit(object):
         self.modhash = me['data']['modhash']
 
     def api_call(self, action, **params): 
+        now = time.time()
+        tdiff = now - self.last_request_ts
+        if tdiff < 2:
+            self.logger.debug('Waiting {0} seconds'.format(2-tdiff))
+            time.sleep(2-tdiff)
+
         baseurl = 'http://www.reddit.com'
         if params:
             req = urllib2.Request(baseurl + action, urllib.urlencode(params))
@@ -42,6 +50,7 @@ class Reddit(object):
             req = urllib2.Request(baseurl + action)
 
         response = self.opener.open(req)
+        self.last_request_ts = time.time()
         return json.loads(response.read())
 
     def submit_link(self, link, title, interactive=False):
