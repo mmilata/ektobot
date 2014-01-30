@@ -169,13 +169,15 @@ class State(object):
 
         return j
 
-    def url(self, url):
+    def url(self, url, create=True):
         if url in self.urls:
             return self.urls[url]
-        else:
+        elif create:
             us = UrlState(url)
             self.urls[url] = us
             return us
+        else:
+            raise KeyError(url)
 
     def is_processed(self, url):
         return url in self.urls
