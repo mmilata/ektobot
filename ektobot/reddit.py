@@ -7,6 +7,8 @@ import logging
 
 from utils import AuthData, USER_AGENT
 
+#TODO: we should consistently either log error and return None or raise an exception
+
 class Reddit(object):
     def __init__(self, auth, sub, dry_run=False):
         self.dry_run = dry_run
@@ -44,7 +46,7 @@ class Reddit(object):
 
     def submit_link(self, link, title, interactive=False):
         if self.dry_run:
-            return 'dry-run-reddit-id'
+            return ('dry-run-reddit-id', 'http://example.com/foobar/')
 
         params = {
             'api_type': 'json',
@@ -67,9 +69,9 @@ class Reddit(object):
 
             if result.has_key('data') and result['data'].has_key('id'):
                 post_id = result['data']['id']
-                if result['data'].has_key('url'):
-                    self.logger.info('Success: {0}'.format(result['data']['url']))
-                return result['data']['id']
+                post_url = result['data']['url']
+                self.logger.info('Successfully posted: {0}'.format(post_url))
+                return (post_id, post_url)
 
             if len(result['errors']) == 1 and 'BAD_CAPTCHA' in result['errors'][0]:
                 if not interactive:
@@ -91,6 +93,47 @@ class Reddit(object):
         self.logger.error('Captcha is required')
         return None
 
+    def submit_comment(self, post_id, text):
+        thing = 't3_' + post_id
+        result = self.api_call('/api/comment', api_type='json', uh=self.modhash,
+                               parent=thing, text=text)
+
+        if not result.has_key('json') or not result['json'].has_key('errors'):
+            self.logger.error('Unexpected response: {0}'.format(result))
+            return False
+        if result['json']['errors']:
+            self.logger.error('Error: {0}'.format(result['errors']))
+            return False
+        self.logger.debug('Comment posted')
+        return True
+
+def submit_to_reddit(urlstate, sub, auth, interactive=False, dry_run=False):
+    r = Reddit(auth, sub, dry_run=dry_run)
+
+    url = ('http://www.youtube.com/watch?v={0}&list={1}'
+           .format(urlstate.youtube.playlist, urlstate.youtube.videos[0]))
+
+    if not urlstate.title:
+        raise ValueError('Missing title')
+
+    title = urlstate.title
+    if urlstate.artist and urlstate.artist != 'VA':
+        title = (urlstate.artist + ' - ' + title)
+    if urlstate.tags:
+        title += (' [' + ', '.join(urlstate.tags) + ']')
+
+    res = r.submit_link(url, title, interactive=interactive)
+    if not res:
+        raise RuntimeError('Failed to submit link')
+
+    urlstate.reddit.result = 'posted-link'
+    urlstate.reddit.post_id = res[0]
+    urlstate.reddit.url = res[1]
+
+    comment = u'**[Download the full album from Ektoplazm]({url}).**'.format(urlstate.url)
+    if r.submit_comment(urlstate.reddit.post_id, comment):
+        urlstate.reddit.result = 'posted-link-and-comment'
+
 if __name__ == '__main__':
     from sys import argv
     logging.basicConfig(level=logging.DEBUG)
@@ -99,7 +142,8 @@ if __name__ == '__main__':
     title = 'Ektobot, tool for uploading music archives' if len(argv) < 2 else argv[2]
     sub = 'ektoplazm' if len(argv) < 3 else argv[3]
     auth = AuthData()
-    print url, title, sub
 
     r = Reddit(auth, sub)
-    print r.submit_link(url, title, interactive=True)
+    a =  r.submit_link(url, title, interactive=True)
+    if a:
+        r.submit_comment(a[0], 'This is a *test* _comment_.')
