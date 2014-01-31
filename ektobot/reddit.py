@@ -15,7 +15,7 @@ class Reddit(object):
         self.dry_run = dry_run
         self.sub = sub
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.last_request_ts = time.time()
+        self.last_request_ts = 0.0
 
         # prepare
         cookies = cookielib.CookieJar()
@@ -34,22 +34,22 @@ class Reddit(object):
         self.logger.debug('Successfully logged in')
 
         me = self.api_call('/api/me.json')
-        self.modhash = me['data']['modhash']
+        self.opener.addheaders.append(('x-modhash',  me['data']['modhash']))
 
     def api_call(self, action, **params): 
-        now = time.time()
-        tdiff = now - self.last_request_ts
+        tdiff = time.time() - self.last_request_ts
         if tdiff < 2:
             self.logger.debug('Waiting {0} seconds'.format(2-tdiff))
             time.sleep(2-tdiff)
 
-        baseurl = 'http://www.reddit.com'
+        baseurl = 'https://www.reddit.com'
         if params:
             req = urllib2.Request(baseurl + action, urllib.urlencode(params))
         else:
             req = urllib2.Request(baseurl + action)
 
         response = self.opener.open(req)
+        #self.logger.debug('Response: {0}'.format(response.getcode()))
         self.last_request_ts = time.time()
         return json.loads(response.read())
 
@@ -59,7 +59,6 @@ class Reddit(object):
 
         params = {
             'api_type': 'json',
-            'uh': self.modhash,
             'kind': 'link',
             'title': title,
             'url': link,
@@ -104,17 +103,19 @@ class Reddit(object):
 
     def submit_comment(self, post_id, text):
         thing = 't3_' + post_id
-        result = self.api_call('/api/comment', api_type='json', uh=self.modhash,
-                               parent=thing, text=text)
+        result = self.api_call('/api/comment', api_type='json', parent=thing, text=text)
 
-        if not result.has_key('json') or not result['json'].has_key('errors'):
+        try:
+            result = result['json']
+            if result['errors']:
+                self.logger.error('Error: {0}'.format(result['errors']))
+                return None
+            comment_id = result['data']['things'][0]['data']['id']
+            self.logger.debug('Comment posted: {0}'.format(comment_id))
+            return comment_id
+        except KeyError:
             self.logger.error('Unexpected response: {0}'.format(result))
-            return False
-        if result['json']['errors']:
-            self.logger.error('Error: {0}'.format(result['errors']))
-            return False
-        self.logger.debug('Comment posted')
-        return True
+            return None
 
 def submit_to_reddit(urlstate, sub, auth, interactive=False, dry_run=False):
     r = Reddit(auth, sub, dry_run=dry_run)
@@ -144,15 +145,21 @@ def submit_to_reddit(urlstate, sub, auth, interactive=False, dry_run=False):
         urlstate.reddit.result = 'posted-link-and-comment'
 
 if __name__ == '__main__':
+    import random
     from sys import argv
     logging.basicConfig(level=logging.DEBUG)
 
-    url = 'http://github.com/mmilata/ektobot' if len(argv) < 1 else argv[1]
-    title = 'Ektobot, tool for uploading music archives' if len(argv) < 2 else argv[2]
-    sub = 'ektoplazm' if len(argv) < 3 else argv[3]
+    randstr = ''.join([chr(random.choice(range(ord('a'), ord('z')))) for i in range(6)])
+    if len(argv) < 2:
+        url = 'http://example.com/{0}'.format(randstr)
+    else:
+        url = argv[1]
+
+    title = 'Ektobot test {0}'.format(randstr) if len(argv) < 3 else argv[2]
+    sub = 'ektoplazm' if len(argv) < 4 else argv[3]
     auth = AuthData()
 
     r = Reddit(auth, sub)
     a =  r.submit_link(url, title, interactive=True)
     if a:
-        r.submit_comment(a[0], 'This is a *test* _comment_.')
+        r.submit_comment(a[0], 'This is a **test** *comment*.')
