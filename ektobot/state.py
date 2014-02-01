@@ -107,7 +107,7 @@ class State(object):
             return
 
         directory = os.path.dirname(self.filename)
-        if not os.path.isdir(directory):
+        if directory and not os.path.isdir(directory):
             logger.info(u'Creating directory {0}'.format(directory))
             os.makedirs(directory, 0700)
 

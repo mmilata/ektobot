@@ -9,6 +9,7 @@ import zipfile
 from utils import write_dirmeta
 
 # TODO: source-specific
+# XXX and unreliable if artist/album contain dash - better get it from id3
 def parse_name(filename):
     fn = os.path.basename(filename)
     m = re.match(r'^(.+) - (.+) - (\d+) - MP3\.zip$', fn)
