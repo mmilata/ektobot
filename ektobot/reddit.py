@@ -121,7 +121,7 @@ def submit_to_reddit(urlstate, sub, auth, interactive=False, dry_run=False):
     r = Reddit(auth, sub, dry_run=dry_run)
 
     url = ('http://www.youtube.com/watch?v={0}&list={1}'
-           .format(urlstate.youtube.playlist, urlstate.youtube.videos[0]))
+           .format(urlstate.youtube.videos[0], urlstate.youtube.playlist))
 
     if not urlstate.title:
         raise ValueError('Missing title')
@@ -140,7 +140,7 @@ def submit_to_reddit(urlstate, sub, auth, interactive=False, dry_run=False):
     urlstate.reddit.post_id = res[0]
     urlstate.reddit.url = res[1]
 
-    comment = u'**[Download the full album from Ektoplazm]({url}).**'.format(urlstate.url)
+    comment = u'**[Download the full album from Ektoplazm]({0}).**'.format(urlstate.url)
     if r.submit_comment(urlstate.reddit.post_id, comment):
         urlstate.reddit.result = 'posted-link-and-comment'
         # XXX to be removed after reddit comment count bug is fixed:

@@ -10,6 +10,7 @@ from utils import load_config, AuthData
 from unpack import unpack
 from video_convert import videos
 from network import watch_rss, process_url, process_list
+from reddit import submit_to_reddit
 
 def setup_logging(filename=None, verbose=False):
     fmt = logging.Formatter(

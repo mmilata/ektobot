@@ -9,6 +9,7 @@ from utils import TemporaryDir
 from video_convert import videos
 from youtube import ytupload
 from source import Ektoplazm
+from reddit import submit_to_reddit
 
 #XXX the number of arguments is not ... sustainable
 def watch_rss(meta, dry_run, auth=None, keep=False, sleep_interval=30*60,
