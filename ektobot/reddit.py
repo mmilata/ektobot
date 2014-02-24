@@ -143,6 +143,8 @@ def submit_to_reddit(urlstate, sub, auth, interactive=False, dry_run=False):
     comment = u'**[Download the full album from Ektoplazm]({url}).**'.format(urlstate.url)
     if r.submit_comment(urlstate.reddit.post_id, comment):
         urlstate.reddit.result = 'posted-link-and-comment'
+        # XXX to be removed after reddit comment count bug is fixed:
+        r.submit_comment(urlstate.reddit.post_id, comment)
 
 if __name__ == '__main__':
     import random
