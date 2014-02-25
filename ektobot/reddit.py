@@ -6,15 +6,15 @@ import urllib2
 import cookielib
 import logging
 
-from utils import AuthData, USER_AGENT
+from utils import init_logger, AuthData, USER_AGENT
 
 #TODO: we should consistently either log error and return None or raise an exception
 
 class Reddit(object):
     def __init__(self, auth, sub, dry_run=False):
+        init_logger(self)
         self.dry_run = dry_run
         self.sub = sub
-        self.logger = logging.getLogger(self.__class__.__name__)
         self.last_request_ts = 0.0
 
         # prepare

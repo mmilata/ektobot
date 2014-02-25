@@ -9,7 +9,7 @@ import urlparse
 import contextlib
 import BeautifulSoup
 
-from utils import USER_AGENT
+from utils import init_logger, USER_AGENT
 
 class License(object):
     def __init__(self, url):
@@ -34,7 +34,7 @@ class License(object):
 
 class Source(object):
     def __init__(self, page_url, html_string=None):
-        self.logger = logging.getLogger(self.__class__.__name__)
+        init_logger(self)
         self.opener = urllib2.build_opener()
         self.opener.addheaders = [('user-agent', USER_AGENT)]
 
