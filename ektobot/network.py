@@ -9,8 +9,11 @@ from utils import TemporaryDir
 from video_convert import videos
 from youtube import ytupload
 from source import Ektoplazm
+from reddit import submit_to_reddit
 
-def watch_rss(meta, dry_run, auth=None, keep=False, sleep_interval=30*60):
+#XXX the number of arguments is not ... sustainable
+def watch_rss(meta, dry_run, auth=None, keep=False, sleep_interval=30*60,
+              subreddit=None, interactive=None):
     import feedparser
 
     logger = logging.getLogger('rss')
@@ -20,14 +23,16 @@ def watch_rss(meta, dry_run, auth=None, keep=False, sleep_interval=30*60):
 
         for entry in feed.entries:
             if not meta.is_processed(entry.link):
-                process_url(meta, entry.link, dry_run, auth=auth, keep=keep)
+                process_url(meta, entry.link, dry_run, auth=auth, keep=keep,
+                            subreddit=subreddit, interactive=interactive)
         try:
             time.sleep(sleep_interval)
         except KeyboardInterrupt:
             logger.info('User requested exit')
             break
 
-def process_list(meta, listfile, dry_run, auth=None, keep=False, retry=False):
+def process_list(meta, listfile, dry_run, auth=None, keep=False, retry=False,
+                 subreddit=None, interactive=None):
     logger = logging.getLogger('list')
 
     with open(listfile, 'r') as fh:
@@ -40,9 +45,11 @@ def process_list(meta, listfile, dry_run, auth=None, keep=False, retry=False):
             else:
                 continue
 
-        process_url(meta, url, dry_run, auth=auth, keep=keep)
+        process_url(meta, url, dry_run, auth=auth, keep=keep,
+                    subreddit=subreddit, interactive=interactive)
 
-def process_url(meta, page_url, dry_run=False, auth=None, keep=False):
+def process_url(meta, page_url, dry_run=False, auth=None, keep=False,
+                subreddit=None, interactive=False):
     logger = logging.getLogger('url')
     logger.info(u'Processing {0}'.format(page_url))
 
@@ -68,5 +75,8 @@ def process_url(meta, page_url, dry_run=False, auth=None, keep=False):
         urlmeta.youtube.result = 'done'
         urlmeta.youtube.playlist = playlist_id
         urlmeta.youtube.videos = video_ids
-
     meta.save(dry_run=dry_run)
+
+    if subreddit and urlmeta.youtube.result == 'done':
+        submit_to_reddit(urlmeta, subreddit, auth, interactive=interactive, dry_run=dry_run)
+        meta.save(dry_run=dry_run)

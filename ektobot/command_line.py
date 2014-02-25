@@ -10,6 +10,7 @@ from utils import load_config, AuthData
 from unpack import unpack
 from video_convert import videos
 from network import watch_rss, process_url, process_list
+from reddit import submit_to_reddit
 
 def setup_logging(filename=None, verbose=False):
     fmt = logging.Formatter(
@@ -54,6 +55,9 @@ def set_defaults_from_config(cfgfile, parser):
         'keep_tempfiles': ('main', 'keep_tempfiles', tobool),
         'yt_login':    ('youtube', 'login', None),
         'yt_password': ('youtube', 'password', None),
+        'reddit_login':    ('reddit', 'login', None),
+        'reddit_password': ('reddit', 'password', None),
+        'reddit_sub':      ('reddit', 'sub', None),
     }
 
     for opt_name, (section, key, f) in config_subs.iteritems():
@@ -74,6 +78,10 @@ def process_command_line(args):
     parser.add_argument('-L', '--log-file', type=str, help='log file path')
     parser.add_argument('--yt-login', type=str, help='youtube login (email)')
     parser.add_argument('--yt-password', type=str, help='youtube password')
+    parser.add_argument('--reddit-login', type=str, help='reddit login')
+    parser.add_argument('--reddit-password', type=str, help='reddit password')
+    parser.add_argument('--reddit-sub', type=str, help='subreddit')
+    parser.add_argument('-i', '--interactive', action='store_true', help='stop to ask questions')
     parser.add_argument('-v', '--verbose', action='store_true', help='debugging output')
     subparsers = parser.add_subparsers(help='description', metavar='COMMAND', title='commands')
 
@@ -91,6 +99,10 @@ def process_command_line(args):
     parser_yt.add_argument('dir', type=str, help='directory containing the videos')
     parser_yt.add_argument('-u', '--url', type=str, help='ektoplazm url of the album')
     parser_yt.set_defaults(what='youtube')
+
+    parser_reddit = subparsers.add_parser('reddit', help='post link to video to reddit')
+    parser_reddit.add_argument('url', type=str, help='ektoplazm url (needs to be already uploaded to youtube)')
+    parser_reddit.set_defaults(what='reddit')
 
     parser_rss_new = subparsers.add_parser('set-url', help='create metadata for rss feed')
     parser_rss_new.add_argument('url', type=str, help='url of the feed')
@@ -125,8 +137,10 @@ def main(args):
         auth = AuthData(
             yt_login=opts.yt_login,
             yt_password=opts.yt_password,
+            reddit_login=opts.reddit_login,
+            reddit_password=opts.reddit_password,
         )
-        if opts.what in ('set-url', 'rss', 'url', 'list'):
+        if opts.what in ('set-url', 'rss', 'url', 'list', 'reddit'):
             meta = State(opts.state_file)
 
         if opts.what == 'unpack':
@@ -135,15 +149,22 @@ def main(args):
             videos(opts.dir, opts.dry_run, opts.outdir, opts.image)
         elif opts.what == 'youtube':
             ytupload(opts.dir, opts.dry_run, auth, opts.url)
+        elif opts.what == 'reddit':
+            submit_to_reddit(meta.url(opts.url, create=False), opts.reddit_sub, auth,
+                             interactive=opts.interactive, dry_run=opts.dry_run)
+            meta.save(dry_run=opts.dry_run)
         elif opts.what == 'set-url':
             meta.feed = opts.url
             meta.save(dry_run=opts.dry_run)
         elif opts.what == 'rss':
-            watch_rss(meta, opts.dry_run, auth=auth, keep=opts.keep_tempfiles) #tmpdir, sleep interval
+            watch_rss(meta, opts.dry_run, auth=auth, keep=opts.keep_tempfiles,
+                      subreddit=opts.reddit_sub, interactive=opts.interactive)
         elif opts.what == 'url':
-            process_url(meta, opts.url, dry_run=opts.dry_run, auth=auth, keep=opts.keep_tempfiles)
+            process_url(meta, opts.url, dry_run=opts.dry_run, auth=auth, keep=opts.keep_tempfiles,
+                        subreddit=opts.reddit_sub, interactive=opts.interactive)
         elif opts.what == 'list':
-            process_list(opts.state_file, opts.urls, dry_run=opts.dry_run, auth=auth, keep=opts.keep_tempfiles, retry=opts.retry_failing)
+            process_list(opts.state_file, opts.urls, dry_run=opts.dry_run, auth=auth,
+                         keep=opts.keep_tempfiles, retry=opts.retry_failing)
         else:
             assert False
     except KeyboardInterrupt:

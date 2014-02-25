@@ -7,6 +7,27 @@ import logging
 
 CURRENT_VERSION = 2
 
+class RedditState(object):
+    def __init__(self, j=None):
+        if not j:
+            j = {}
+
+        self.result = j.get('result')
+        self.post_id = j.get('id')
+        self.url = j.get('url')
+
+    def to_json(self):
+        res = {}
+
+        if self.result:
+            res['result'] = self.result
+        if self.post_id:
+            res['id'] = self.post_id
+        if self.url:
+            res['url'] = self.url
+
+        return res
+
 class YouTubeState(object):
     def __init__(self, j=None):
         if not j:
@@ -35,6 +56,7 @@ class UrlState(object):
 
         self.url = url
         self.youtube = YouTubeState(j.get('youtube'))
+        self.reddit = RedditState(j.get('reddit'))
         self.license = j.get('license')
         self.tags = set(j.get('tags', []))
         self.artist = j.get('artist')
@@ -43,8 +65,6 @@ class UrlState(object):
 
     def to_json(self):
         res = {}
-        if self.youtube:
-            res['youtube'] = self.youtube.to_json()
         if self.license:
             res['license'] = self.license
         if self.tags:
@@ -55,6 +75,13 @@ class UrlState(object):
             res['title'] = self.title
         if self.year:
             res['year'] = self.year
+
+        youtube = self.youtube.to_json() if self.youtube else None
+        if youtube:
+            res['youtube'] = youtube
+        reddit = self.reddit.to_json() if self.reddit else None
+        if reddit:
+            res['reddit'] = reddit
 
         return res
 
@@ -142,13 +169,15 @@ class State(object):
 
         return j
 
-    def url(self, url):
+    def url(self, url, create=True):
         if url in self.urls:
             return self.urls[url]
-        else:
+        elif create:
             us = UrlState(url)
             self.urls[url] = us
             return us
+        else:
+            raise KeyError(url)
 
     def is_processed(self, url):
         return url in self.urls
