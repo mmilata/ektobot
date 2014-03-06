@@ -136,9 +136,9 @@ def submit_to_reddit(urlstate, sub, auth, interactive=False, dry_run=False):
     if not res:
         raise RuntimeError('Failed to submit link')
 
-    urlstate.reddit.result = 'posted-link'
     urlstate.reddit.post_id = res[0]
     urlstate.reddit.url = res[1]
+    urlstate.reddit.result = 'posted-link'
 
     comment = u'**[Download the full album from Ektoplazm]({0}).**'.format(urlstate.url)
     if r.submit_comment(urlstate.reddit.post_id, comment):

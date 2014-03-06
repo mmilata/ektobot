@@ -78,5 +78,12 @@ def process_url(meta, page_url, dry_run=False, auth=None, keep=False,
     meta.save(dry_run=dry_run)
 
     if subreddit and urlmeta.youtube.result == 'done':
-        submit_to_reddit(urlmeta, subreddit, auth, interactive=interactive, dry_run=dry_run)
+        try:
+            urlmeta.reddit.result = None
+            submit_to_reddit(urlmeta, subreddit, auth, interactive=interactive, dry_run=dry_run)
+        except Exception:
+            logger.exception(u'Failed to submit to reddit')
+            if not urlmeta.reddit.result:
+                urlmeta.reddit.result = 'failed'
+            # TODO: save the exception
         meta.save(dry_run=dry_run)
