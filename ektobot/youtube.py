@@ -101,6 +101,7 @@ def ytupload(dirname, dry_run, auth, url=None):
             logger.debug(u'Playlist ID: {0}'.format(playlist_id))
             for video_id in video_ids:
                 playlist_entry = yt_service.AddPlaylistVideoEntryToPlaylist(playlist_uri, video_id)
+                time.sleep(2) # sufficient to prevent "too_many_recent_calls" ?
         else:
             playlist_id = 'dry-run-playlist-id'
 
