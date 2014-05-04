@@ -177,3 +177,68 @@ def ytupload(dirname, dry_run, auth, url=None):
 #            ['artist', 'track', 'album', 'trackno', 'albumurl'])
 #    yt_service.debug = True                  # problem somewhere here
 #    print yt_service.UpdateVideoEntry(entry) #
+
+def process_one_playlist(yt_service, playlist_id, meta, dry_run=False):
+    logger = logging.getLogger('youtube-playlist-dl')
+
+    skip = False
+    for (url, urlmeta) in meta.urls.iteritems():
+        if urlmeta.youtube and urlmeta.youtube.playlist == playlist_id:
+            skip = True
+            break
+
+    if skip:
+        logger.info('Skipping, playlist id known: {0}'.format(url))
+        return
+
+    video_feed = yt_service.GetYouTubePlaylistVideoFeed(playlist_id=playlist_id)
+    video_ids = []
+    for ventry in video_feed.entry:
+        try:
+            for l in ventry.link:
+                if l.rel == 'alternate' and l.type == 'text/html':
+                    m = re.match(r'^https?://www.youtube.com/watch\?v=([^&]+)&feature', l.href)
+                    video_ids.append(m.group(1))
+                    break
+            else:
+                assert False
+        except (AssertionError, AttributeError):
+            logger.error('Error obtaining video id in {0}'.format(playlist_id))
+
+    m = re.search(r'https?://www.ektoplazm.com/free-music/.+$', ventry.description.text, re.MULTILINE)
+    if m is None:
+        logger.error('Cannot find URL for {0}'.format(playlist_id))
+        return
+
+    url = m.group(0)
+    try:
+        logger.debug('url: {0} playlist: {1} videos: {2}'.format(url, playlist_id, video_ids))
+        meta.urls[url].youtube.playlist = playlist_id
+        meta.urls[url].youtube.videos = video_ids
+        meta.save(dry_run)
+    except KeyError:
+            logger.error('URL {0} not in meta?'.format(url))
+
+def youtube_playlist_ids(auth, meta, idlist, dry_run=False):
+    logger = logging.getLogger('youtube-playlist-dl')
+    yt_service = ytlogin(auth.yt_login, auth.yt_password)
+
+    if idlist:
+        with open(idlist, 'r') as fh:
+            for line in fh:
+                process_one_playlist(yt_service, line[:-1], meta, dry_run)
+        return
+
+    max_results = 50
+    for start_idx in xrange(1, 1000, max_results):
+        logger.debug('Requesting playlists {0}-{1}'.format(start_idx, start_idx+max_results))
+        playlist_feed = yt_service.GetYouTubePlaylistFeed(uri='https://gdata.youtube.com/feeds/api/users/default/playlists?max-results={0}&start-index={1}'.format(max_results, start_idx))
+
+        for playlist in playlist_feed.entry:
+            playlist_id = playlist.id.text.split('/')[-1]
+            playlist_title = playlist.title.text
+            logger.debug('{0} {1}'.format(playlist_id, playlist_title))
+
+            process_one_playlist(yt_service, playlist_id, meta)
+
+        time.sleep(2)

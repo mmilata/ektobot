@@ -5,7 +5,7 @@ import logging
 import argparse
 
 from state import State
-from youtube import ytupload
+from youtube import ytupload, youtube_playlist_ids
 from utils import load_config, AuthData
 from unpack import unpack
 from video_convert import videos
@@ -100,6 +100,10 @@ def process_command_line(args):
     parser_yt.add_argument('-u', '--url', type=str, help='ektoplazm url of the album')
     parser_yt.set_defaults(what='youtube')
 
+    parser_ytpl = subparsers.add_parser('ytpl', help='download playlist ids')
+    parser_ytpl.add_argument('--idlist', type=str, help='file containing playlist ids')
+    parser_ytpl.set_defaults(what='ytpl')
+
     parser_reddit = subparsers.add_parser('reddit', help='post link to video to reddit')
     parser_reddit.add_argument('url', type=str, help='ektoplazm url (needs to be already uploaded to youtube)')
     parser_reddit.set_defaults(what='reddit')
@@ -140,7 +144,7 @@ def main(args):
             reddit_login=opts.reddit_login,
             reddit_password=opts.reddit_password,
         )
-        if opts.what in ('set-url', 'rss', 'url', 'list', 'reddit'):
+        if opts.what in ('set-url', 'rss', 'url', 'list', 'reddit', 'ytpl'):
             meta = State(opts.state_file)
 
         if opts.what == 'unpack':
@@ -149,6 +153,8 @@ def main(args):
             videos(opts.dir, opts.dry_run, opts.outdir, opts.image)
         elif opts.what == 'youtube':
             ytupload(opts.dir, opts.dry_run, auth, opts.url)
+        elif opts.what == 'ytpl':
+            youtube_playlist_ids(auth, meta, opts.idlist, opts.dry_run)
         elif opts.what == 'reddit':
             submit_to_reddit(meta.url(opts.url, create=False), opts.reddit_sub, auth,
                              interactive=opts.interactive, dry_run=opts.dry_run)
