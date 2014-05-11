@@ -11,7 +11,8 @@ from ektobot.command_line import main
 
 KEEP = False
 STATENAME = 'state.json'
-SONGNAME = '01 - Test artist - Test song.mp3'
+SONGNAME1 = '01 - Test artist - Test song.mp3'
+SONGNAME2 = '02 - Test artist - Test song (remix).mp3'
 ZIPNAME = 'Test artist - Test album - 2013 - MP3.zip'
 DIRNAME = 'Test_artist_-_Test_album'
 COVERNAME = 'folder.jpg'
@@ -69,11 +70,18 @@ class TestFunctional(unittest.TestCase):
                 self.assertRunSucceeds(['unpack', ZIPNAME])
 
             self.assertTrue(os.path.isdir(os.path.join(tmpdir, DIRNAME)))
-            self.assertTrue(os.path.isfile(os.path.join(DIRNAME, SONGNAME)))
+            self.assertTrue(os.path.isfile(os.path.join(DIRNAME, SONGNAME1)))
+            self.assertTrue(os.path.isfile(os.path.join(DIRNAME, SONGNAME2)))
 
-            # XXX ffmpeg segfaults on Fedora 19
-            #with StdioString() as h:
-            #    self.assertRunSucceeds(['videos', DIRNAME])
+            with StdioString() as h:
+                self.assertRunSucceeds(['videos', '--recode-audio', DIRNAME])
+
+            vid1 = SONGNAME1.replace('mp3', 'avi')
+            vid2 = SONGNAME2.replace('mp3', 'avi')
+            self.assertTrue(os.path.isdir(os.path.join(DIRNAME, 'video')))
+            self.assertTrue(os.path.isfile(os.path.join(DIRNAME, 'video', vid1)))
+            self.assertTrue(os.path.isfile(os.path.join(DIRNAME, 'video', vid2)))
+            self.assertTrue(os.path.isfile(os.path.join(DIRNAME, 'video', 'ektobot.json')))
 
     def test_state_file(self):
         with TemporaryDir('ektobot.test_state_file', keep=KEEP) as tmpdir:
@@ -95,13 +103,21 @@ if __name__ == '__main__':
     import logging
     logging.basicConfig(level=logging.DEBUG)
 
-    run(['sox', '-n', 'sound.wav', 'synth', '3', 'sine', '300-3300'])
+    run(['sox', '-n', 'sound1.wav', 'synth', '3', 'sine', '300-3300'])
+    run(['sox', '-n', 'sound2.wav', 'synth', '3', 'sine', '13000-3000'])
     run(['lame',
          '--tt', 'Test song',
          '--ta', 'Test artist',
          '--tl', 'Test album',
          '--ty', '2013',
-         '--tn', '1/1',
-         'sound.wav', SONGNAME])
+         '--tn', '1/2',
+         'sound1.wav', SONGNAME1])
+    run(['lame',
+         '--tt', 'Test song (remix)',
+         '--ta', 'Test artist',
+         '--tl', 'Test album',
+         '--ty', '2013',
+         '--tn', '2/2',
+         'sound2.wav', SONGNAME2])
     run(['convert', '-size', '100x100', 'canvas:green', COVERNAME])
-    run(['zip', ZIPNAME, SONGNAME, COVERNAME])
+    run(['zip', ZIPNAME, SONGNAME1, SONGNAME2, COVERNAME])

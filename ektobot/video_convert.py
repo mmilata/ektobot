@@ -62,7 +62,7 @@ def trackmeta(f):
             'album' : tag.album
         }
 
-def videos(dirname, dry_run, outdir=None, cover=None):
+def videos(dirname, dry_run, outdir=None, cover=None, lossless_audio=True):
     logger = logging.getLogger('video')
 
     if not outdir:
@@ -114,10 +114,14 @@ def videos(dirname, dry_run, outdir=None, cover=None):
                    '-i', cover,          # image
                    '-i', infile,         # audio
                    '-vf', 'scale=min(800\\,in_w):-1', # scale the image down to (at most) 800px width
-                   '-r', '1',            # 1fps
-                   '-acodec', 'copy',    # do not recode audio
-                   '-shortest',          # stop when the audio stops
-                   outfile]
+                   '-r', '1']            # 1fps
+
+        # segfaults ffmpeg on fedora 20 :(
+        if lossless_audio:
+            cmdline += ['-acodec', 'copy'] # do not recode audio
+
+        cmdline += ['-shortest',         # stop when the audio stops
+                    outfile]
         try:
             if not dry_run:
                 run(cmdline)

@@ -92,6 +92,7 @@ def process_command_line(args):
     parser_videos = subparsers.add_parser('videos', help='convert audio files to yt-uploadable videos')
     parser_videos.add_argument('--image', type=str, help='album cover image')
     parser_videos.add_argument('--outdir', type=str, help='video output directory (default video)')
+    parser_videos.add_argument('--recode-audio', action='store_true', help='recode audio (workaround ffmpeg sigsegv')
     parser_videos.add_argument('dir', type=str, help='directory containing audio files') #TODO make it optional?
     parser_videos.set_defaults(what='videos')
 
@@ -146,7 +147,7 @@ def main(args):
         if opts.what == 'unpack':
             unpack(opts.archive, opts.dry_run)
         elif opts.what == 'videos':
-            videos(opts.dir, opts.dry_run, opts.outdir, opts.image)
+            videos(opts.dir, opts.dry_run, opts.outdir, opts.image, not opts.recode_audio)
         elif opts.what == 'youtube':
             ytupload(opts.dir, opts.dry_run, auth, opts.url)
         elif opts.what == 'reddit':
