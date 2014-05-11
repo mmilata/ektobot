@@ -83,6 +83,12 @@ class TestFunctional(unittest.TestCase):
             self.assertTrue(os.path.isfile(os.path.join(DIRNAME, 'video', vid2)))
             self.assertTrue(os.path.isfile(os.path.join(DIRNAME, 'video', 'ektobot.json')))
 
+            with StdioString() as h:
+                self.assertRunSucceeds([
+                    '--dry-run',
+                    '--yt-secrets', '/dev/null',
+                    'youtube', os.path.join(DIRNAME, 'video')])
+
     def test_state_file(self):
         with TemporaryDir('ektobot.test_state_file', keep=KEEP) as tmpdir:
             statefile = os.path.join(tmpdir, STATENAME)

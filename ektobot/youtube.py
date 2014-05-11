@@ -1,11 +1,166 @@
 
 import re
 import time
+import random
 import logging
 import os.path
 
+import httplib
+import httplib2
+
+httplib2.RETRIES = 1
+
+from apiclient.discovery import build
+from apiclient.errors import HttpError
+from apiclient.http import MediaFileUpload
+from oauth2client.file import Storage
+from oauth2client.client import flow_from_clientsecrets
+from oauth2client.tools import run_flow
+
 from utils import *
 from source import Ektoplazm
+
+class YouTube(object):
+    MAX_RETRIES = 10
+    RETRIABLE_EXCEPTIONS = (httplib2.HttpLib2Error, IOError, httplib.NotConnected,
+        httplib.IncompleteRead, httplib.ImproperConnectionState,
+        httplib.CannotSendRequest, httplib.CannotSendHeader,
+        httplib.ResponseNotReady, httplib.BadStatusLine)
+    RETRIABLE_STATUS_CODES = [500, 502, 503, 504]
+
+    class WtfGoogle(object):
+        noauth_local_webserver = True
+        logging_level = 'DEBUG'
+
+    def __init__(self, secrets_file, dry_run=False):
+        init_logger(self)
+        self.dry_run = dry_run
+        self.service = self._get_authenticated_service(secrets_file)
+        self.sleeper = Sleeper(self.logger)
+
+    def _get_authenticated_service(self, secrets_file):
+        if self.dry_run:
+            return None
+
+        try:
+            flow = flow_from_clientsecrets(secrets_file,
+                scope='https://www.googleapis.com/auth/youtube')
+        except oauth2client.clientsecrets.InvalidClientSecretsError:
+            self.logger.error('Missing client secrets file {0}. '+
+                    'Please obtain it from https://console.developers.google.com/')
+            raise RuntimeError('Client secrets missing')
+
+        storage = Storage('{0}-storage'.format(secrets_file))
+        credentials = storage.get()
+
+        if credentials is None or credentials.invalid:
+            credentials = run_flow(flow, storage, self.WtfGoogle())
+
+        return build('youtube', 'v3', http=credentials.authorize(httplib2.Http()))
+
+    def upload_video(self, filename, title, description, tags=[]):
+        self.logger.info(u'Uploading {0}'.format(title))
+        self.logger.debug(u'Filename {0}'.format(filename))
+        self.logger.debug(u'Description:\n{0}'.format(description))
+
+        if self.dry_run:
+            return 'dry-run-video-id'
+
+        self.sleeper.sleep(30)
+
+        insert_request = self.service.videos().insert(
+            part='snippet,status',
+            body={
+                'snippet': {
+                    'title': title,
+                    'description': description,
+                    'tags': tags,
+                    'categoryId': '10' # 10 = music
+                },
+                'status': {
+                    'privacyStatus': 'public'
+                }
+            },
+            media_body=MediaFileUpload(filename, chunksize=-1, resumable=True)
+        )
+
+        response = None
+        error = False
+        retry = 0
+        while response is None:
+            try:
+                status, response = insert_request.next_chunk()
+                if 'id' in response:
+                    self.logger.debug('Upload complete, id: {0}'.format(response['id']))
+                    return response['id']
+                else:
+                    self.logger.error(u'Upload failed: {0}'.format(response))
+                    raise RuntimeError('Error uploading video')
+            except HttpError as e:
+                if e.resp.status in self.RETRIABLE_STATUS_CODES:
+                    self.logger.exception('Retriable HTTP error {0}'.format(e.resp.status))
+                    error = True
+                else:
+                    raise
+            except self.RETRIABLE_EXCEPTIONS as e:
+                self.logger.exception('Retriable error')
+                error = True
+
+            if error:
+                retry += 1
+                if retry > self.MAX_RETRIES:
+                    self.logger.error('Max retries exceeded')
+                    raise RuntimeError('Error uploading video')
+
+                max_sleep = 2 ** retry
+                sleep_seconds = random.randint(0, max_sleep)
+                self.logger.info('Retrying in {0} seconds'.format(sleep_seconds))
+                time.sleep(sleep_seconds)
+
+    def create_playlist(self, title, video_ids, description='', tags=[]):
+        self.logger.info(u'Creating playlist {0}'.format(title))
+
+        if self.dry_run:
+            return 'dry-run-playlist-id'
+
+        playlist_insert_response = self.service.playlists().insert(
+            part='snippet,status',
+            body={
+                'snippet': {
+                    'title': title,
+                    'description': description,
+                    'tags': tags
+                },
+                'status': {
+                    'privacyStatus': 'public'
+                }
+            }
+        ).execute()
+        if 'id' not in playlist_insert_response:
+            self.logger.error(u'Failed to create playlist: {0}'.format(response))
+        playlist_id = playlist_insert_response['id']
+
+        for video_id in video_ids:
+            insert_response = self.service.playlistItems().insert(
+                part='snippet',
+                body={
+                    'snippet': {
+                        'playlistId': playlist_id,
+                        'resourceId': {
+                            'kind': 'youtube#video',
+                            'videoId': video_id
+                        }
+                    }
+                }
+            ).execute()
+
+            if 'id' not in insert_response:
+                self.logger.error(u'Failed to insert playlist item: {0}'.format(response))
+                raise RuntimeError('Error adding playlist item')
+
+            time.sleep(2)
+
+        return playlist_id
 
 old_ektoplazm_description = u'''Artist: {artist}
 Track: {track}
@@ -37,76 +192,25 @@ templates = {
     'ektoplazm': ektoplazm_description
 }
 
-def ytlogin(email, passwd, dry_run=False):
-    import gdata.youtube.service
+def playlist_title(meta):
+    formats_artist = [
+        u'{artist} - {album} ({year})',
+        u'{artist} - {album}',
+        u'{album}' ]
+    formats_va = [
+        u'{album} ({year})',
+        u'{album}' ]
 
-    yt_service = gdata.youtube.service.YouTubeService()
-    #yt_service.ssl = True
-    yt_service.developer_key = 'AI39si5d9grkxFwwm603wvh2toZxshBqVkCWalTT3UXB4b3W3TJz0bCwBv0qqRN9LeQDz0FAXOfCaSW35mAbtj3pnI8cXKu7YA'
-    yt_service.source = 'ektobot'
-    yt_service.client_id = USER_AGENT
-    yt_service.email = email
-    yt_service.password = passwd
-    if not dry_run:
-        yt_service.ProgrammaticLogin()
+    formats = formats_va if meta['artist'] == 'VA' else formats_artist
 
-    return yt_service
+    for fmt in formats:
+        title = fmt.format(**meta)
+        if len(title) <= 60:
+            break
 
-def ytupload(dirname, dry_run, auth, url=None):
-    import gdata.youtube
+    return title[:60]
 
-    logger = logging.getLogger('youtube')
-
-    def yt_upload_video(yt_service, filename, title, description, tags):
-        keywords = 'ektoplazm, music'
-        if tags:
-            keywords += (', ' + ', '.join(tags))
-
-        media_group = gdata.media.Group(
-            title       = gdata.media.Title(text=title),
-            description = gdata.media.Description(description_type='plain', text=description),
-            keywords    = gdata.media.Keywords(text=keywords),
-            category    = gdata.media.Category(text='Music', label='Music', scheme='http://gdata.youtube.com/schemas/2007/categories.cat'),
-            player      = None
-        )
-
-        video_entry = gdata.youtube.YouTubeVideoEntry(media=media_group)
-        new_entry = yt_service.InsertVideoEntry(video_entry, filename)
-        return new_entry.id.text.split('/')[-1]
-
-    def yt_create_playlist(yt_service, meta, video_ids, dry_run=False):
-        formats_artist = [
-            u'{artist} - {album} ({year})',
-            u'{artist} - {album}',
-            u'{album}' ]
-        formats_va = [
-            u'{album} ({year})',
-            u'{album}' ]
-
-        formats = formats_va if meta['artist'] == 'VA' else formats_artist
-
-        for fmt in formats:
-            title = fmt.format(**meta)
-            if len(title) <= 60:
-                break
-        title = title[:60]
-        description = ''
-
-        logger.info(u'Creating playlist {0}'.format(title))
-
-        if not dry_run:
-            playlist = yt_service.AddPlaylist(title, description)
-            playlist_id = playlist.id.text.split('/')[-1]
-            playlist_uri = playlist.feed_link[0].href #magic...
-            logger.debug(u'Playlist ID: {0}'.format(playlist_id))
-            for video_id in video_ids:
-                playlist_entry = yt_service.AddPlaylistVideoEntryToPlaylist(playlist_uri, video_id)
-                time.sleep(2) # sufficient to prevent "too_many_recent_calls" ?
-        else:
-            playlist_id = 'dry-run-playlist-id'
-
-        return playlist_id
-
+def ytupload(dirname, dry_run, secrets_file, url=None):
     meta = read_dirmeta(dirname)
     if 'url' not in meta:
         if url:
@@ -122,10 +226,12 @@ def ytupload(dirname, dry_run, auth, url=None):
     video_ids = []
 
     desc_template = templates['default']
+    tag_list = list(meta['tags'])
     if 'ektoplazm.com' in meta['url']:
         desc_template = templates['ektoplazm']
+        tag_list += ['ektoplazm', 'music']
 
-    yt_service = ytlogin(auth.yt_login, auth.yt_password, dry_run)
+    youtube = YouTube(secrets_file, dry_run)
 
     for trk in meta['tracks']:
         filename = os.path.join(dirname, trk['video_file'])
@@ -139,41 +245,13 @@ def ytupload(dirname, dry_run, auth, url=None):
             license = meta['license'],
             albumurl = meta['url']
         )
-        logger.info(u'Uploading {0}'.format(title))
-        logger.debug(u'Filename {0}'.format(filename))
-        logger.debug(u'Description:\n{0}'.format(description))
-        if not dry_run:
-            vid_id = yt_upload_video(yt_service, filename, title, description, meta['tags'])
-            video_ids.append(vid_id)
-        logger.debug('Upload complete')
-        time.sleep(60) # youtube's not happy when we're uploading too fast
+        video_ids.append(youtube.upload_video(filename, title, description, tag_list))
 
-    playlist_id = yt_create_playlist(yt_service, meta, video_ids, dry_run)
+    playlist_id = youtube.create_playlist(playlist_title(meta), video_ids, tags=tag_list)
     return (playlist_id, video_ids)
 
-#def parse_format(string, fmt, variables):
-#    # create RE
-#    fmt = re.escape(fmt)
-#    for var in variables:
-#        fmt = fmt.replace('\{'+var+'\}', '(?P<'+var+'>.*)')
-#
-#    # run RE on string
-#    m = re.match(fmt, string)
-#    if m:
-#        return m.groupdict()
-#
-#    raise ValueError('String did not match input format')
-#
-#def transform_format(string, informat, outformat, variables):
-#    parsed = parse_format(string, informat, variables)
-#    return outformat.format(**parsed)
-#
-#def reorder_video_description(yt_service, video_id):
-#    entry = yt_service.GetYouTubeVideoEntry(video_id=video_id)
-#    entry.media.description.text = transform_format(
-#            entry.media.description.text,
-#            old_ektoplazm_description,
-#            ektoplazm_description,
-#            ['artist', 'track', 'album', 'trackno', 'albumurl'])
-#    yt_service.debug = True                  # problem somewhere here
-#    print yt_service.UpdateVideoEntry(entry) #
+if __name__ == '__main__':
+    import sys
+    logging.basicConfig(level=logging.DEBUG)
+
+    youtube = YouTube('client_secrets.json')

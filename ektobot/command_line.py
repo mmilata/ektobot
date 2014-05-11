@@ -25,6 +25,9 @@ def setup_logging(filename=None, verbose=False):
     log_stderr.setLevel(logging.DEBUG if verbose else logging.INFO)
     root.addHandler(log_stderr)
 
+    apiclient = logging.getLogger('apiclient')
+    apiclient.setLevel(logging.WARNING)
+
     if filename:
         log_file = logging.FileHandler(filename=filename)
         log_file.setFormatter(fmt)
@@ -53,8 +56,7 @@ def set_defaults_from_config(cfgfile, parser):
         'log_file':       ('main', 'log_file', os.path.expanduser),
         'state_file':     ('main', 'state_file', os.path.expanduser),
         'keep_tempfiles': ('main', 'keep_tempfiles', tobool),
-        'yt_login':    ('youtube', 'login', None),
-        'yt_password': ('youtube', 'password', None),
+        'yt_secrets':     ('youtube', 'client_secrets', os.path.expanduser),
         'reddit_login':    ('reddit', 'login', None),
         'reddit_password': ('reddit', 'password', None),
         'reddit_sub':      ('reddit', 'sub', None),
@@ -76,8 +78,7 @@ def process_command_line(args):
     parser.add_argument('-n', '--dry-run', action='store_true', help='do not write/upload anything')
     parser.add_argument('-k', '--keep-tempfiles', action='store_true', help='do not delete the downloaded and generated files')
     parser.add_argument('-L', '--log-file', type=str, help='log file path')
-    parser.add_argument('--yt-login', type=str, help='youtube login (email)')
-    parser.add_argument('--yt-password', type=str, help='youtube password')
+    parser.add_argument('--yt-secrets', type=str, help='path to youtube client secrets file')
     parser.add_argument('--reddit-login', type=str, help='reddit login')
     parser.add_argument('--reddit-password', type=str, help='reddit password')
     parser.add_argument('--reddit-sub', type=str, help='subreddit')
@@ -100,6 +101,9 @@ def process_command_line(args):
     parser_yt.add_argument('dir', type=str, help='directory containing the videos')
     parser_yt.add_argument('-u', '--url', type=str, help='ektoplazm url of the album')
     parser_yt.set_defaults(what='youtube')
+
+    parser_ytdesc = subparsers.add_parser('ytdesc', help='reformat yt video descriptions')
+    parser_ytdesc.set_defaults(what='ytdesc')
 
     parser_reddit = subparsers.add_parser('reddit', help='post link to video to reddit')
     parser_reddit.add_argument('url', type=str, help='ektoplazm url (needs to be already uploaded to youtube)')
@@ -136,12 +140,11 @@ def main(args):
 
     try:
         auth = AuthData(
-            yt_login=opts.yt_login,
-            yt_password=opts.yt_password,
+            yt_secrets=opts.yt_secrets,
             reddit_login=opts.reddit_login,
             reddit_password=opts.reddit_password,
         )
-        if opts.what in ('set-url', 'rss', 'url', 'list', 'reddit'):
+        if opts.what in ('set-url', 'rss', 'url', 'list', 'reddit', 'ytdesc'):
             meta = State(opts.state_file)
 
         if opts.what == 'unpack':
@@ -149,7 +152,9 @@ def main(args):
         elif opts.what == 'videos':
             videos(opts.dir, opts.dry_run, opts.outdir, opts.image, not opts.recode_audio)
         elif opts.what == 'youtube':
-            ytupload(opts.dir, opts.dry_run, auth, opts.url)
+            ytupload(opts.dir, opts.dry_run, auth.yt_secrets, opts.url)
+        elif opts.what == 'ytdesc':
+            ytdesc(auth, meta, opts.dry_run)
         elif opts.what == 'reddit':
             submit_to_reddit(meta.url(opts.url, create=False), opts.reddit_sub, auth,
                              interactive=opts.interactive, dry_run=opts.dry_run)

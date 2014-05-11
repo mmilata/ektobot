@@ -64,7 +64,7 @@ def process_url(meta, page_url, dry_run=False, auth=None, keep=False,
             mp3_dir = unpack(archive, dry_run=False, outdir=dname, urlmeta=urlmeta)
             video_dir = os.path.join(dname, 'video')
             videos(mp3_dir, dry_run=False, outdir=video_dir, cover=None)
-            (playlist_id, video_ids) = ytupload(video_dir, dry_run=dry_run, auth=auth)
+            (playlist_id, video_ids) = ytupload(video_dir, dry_run=dry_run, secrets_file=auth.yt_secrets)
     except KeyboardInterrupt:
         raise
     except:

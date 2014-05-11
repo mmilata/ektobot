@@ -51,8 +51,7 @@ def StdioString(init_stdin=""):
 class AuthData(object):
     def __init__(self, **kwargs):
         self.fields = {
-            'yt_login': 'youtube login',
-            'yt_password': 'youtube password',
+            'yt_secrets': 'youtube client_secrets.json',
             'sc_login': 'soundcloud login',
             'sc_password': 'soundcloud password',
             'sc_client_id': 'soundcloud client id',

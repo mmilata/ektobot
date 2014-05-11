@@ -6,11 +6,11 @@ from ektobot.utils import AuthData, StdioString
 
 class TestAuthData(unittest.TestCase):
     def test_simple(self):
-        a = AuthData(yt_login='jogin')
+        a = AuthData(reddit_login='jogin')
 
         # pre-set
         with StdioString('foo') as h:
-            self.assertEqual(a.yt_login, 'jogin')
+            self.assertEqual(a.reddit_login, 'jogin')
 
         self.assertEqual(h.stdout, '')
         self.assertEqual(h.stderr, '')

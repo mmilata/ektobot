@@ -13,7 +13,7 @@ requirements
 
 - For encoding videos, you need the ``ffmpeg`` program and ``eyeD3`` python
   module.
-- For youtube uploads, you need to have the ``gdata`` module.
+- For youtube uploads, you need to have the ``google-api-python-client`` module.
 - For the rss functionality, you need the ``feedparser`` and ``BeautifulSoup``
   modules.
 
