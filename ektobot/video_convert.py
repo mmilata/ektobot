@@ -54,11 +54,11 @@ def trackmeta(f):
         tag = eyed3.load(f).tag
 
         return {
-            'num'   : tag.track_num,
+            'num'   : tag.track_num[0],
             'artist': tag.artist,
             'track' : tag.title,
             'bpm'   : tag.bpm,
-            'year'  : tag.best_release_date.year,
+            'year'  : tag.getBestDate().year,
             'album' : tag.album
         }
 
