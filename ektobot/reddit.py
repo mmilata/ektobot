@@ -1,12 +1,11 @@
 
-import time
 import json
 import urllib
 import urllib2
 import cookielib
 import logging
 
-from utils import init_logger, AuthData, USER_AGENT
+from utils import init_logger, AuthData, Sleeper, USER_AGENT
 
 #TODO: we should consistently either log error and return None or raise an exception
 
@@ -15,7 +14,7 @@ class Reddit(object):
         init_logger(self)
         self.dry_run = dry_run
         self.sub = sub
-        self.last_request_ts = 0.0
+        self.sleeper = Sleeper(self.logger)
 
         # prepare
         cookies = cookielib.CookieJar()
@@ -37,10 +36,7 @@ class Reddit(object):
         self.opener.addheaders.append(('x-modhash',  me['data']['modhash']))
 
     def api_call(self, action, **params): 
-        tdiff = time.time() - self.last_request_ts
-        if tdiff < 2:
-            self.logger.debug('Waiting {0} seconds'.format(2-tdiff))
-            time.sleep(2-tdiff)
+        self.sleeper.sleep(2)
 
         baseurl = 'https://www.reddit.com'
         if params:
@@ -50,7 +46,6 @@ class Reddit(object):
 
         response = self.opener.open(req)
         #self.logger.debug('Response: {0}'.format(response.getcode()))
-        self.last_request_ts = time.time()
         return json.loads(response.read())
 
     def submit_link(self, link, title, interactive=False):

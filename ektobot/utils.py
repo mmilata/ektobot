@@ -1,6 +1,7 @@
 
 import sys
 import json
+import time
 import shutil
 import os.path
 import getpass
@@ -75,6 +76,21 @@ class AuthData(object):
             return v
         else:
             raise AttributeError(attr)
+
+class Sleeper(object):
+    def __init__(self, logger=None):
+        self.logger = logger
+        self.last_request_ts = 0.0
+
+    def sleep(self, seconds_from_last):
+        tdiff = time.time() - self.last_request_ts
+        if tdiff < seconds_from_last:
+            wait_seconds = seconds_from_last - tdiff
+            if self.logger:
+                self.logger.debug('Waiting {0} seconds'.format(wait_seconds))
+            time.sleep(wait_seconds)
+
+        self.last_request_ts = time.time()
 
 def init_logger(self):
     self.logger = logging.getLogger(self.__class__.__name__.lower())
