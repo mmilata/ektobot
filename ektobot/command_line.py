@@ -5,7 +5,7 @@ import logging
 import argparse
 
 from state import State
-from youtube import ytupload
+from youtube import ytupload, ytdesc
 from utils import load_config, AuthData
 from unpack import unpack
 from video_convert import videos
@@ -154,7 +154,7 @@ def main(args):
         elif opts.what == 'youtube':
             ytupload(opts.dir, opts.dry_run, auth.yt_secrets, opts.url)
         elif opts.what == 'ytdesc':
-            ytdesc(auth, meta, opts.dry_run)
+            ytdesc(auth.yt_secrets, meta, opts.dry_run)
         elif opts.what == 'reddit':
             submit_to_reddit(meta.url(opts.url, create=False), opts.reddit_sub, auth,
                              interactive=opts.interactive, dry_run=opts.dry_run)

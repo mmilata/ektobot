@@ -162,6 +162,34 @@ class YouTube(object):
 
         return playlist_id
 
+    def update_video(self, video_id, desc_fn, tags_fn):
+        if self.dry_run:
+            return
+
+        video_response = self.service.videos().list(
+            part='id,snippet',
+            id=video_id
+        ).execute()
+
+        try:
+            snippet = video_response['items'][0]['snippet']
+        except (IndexError, KeyError):
+            raise RuntimeError('Video {0} not found: {1}'.format(video_id, video_response))
+
+        snippet['tags'] = tags_fn(snippet.get('tags', []))
+        snippet['description'] = desc_fn(snippet['description'])
+
+        self.sleeper.sleep(2)
+        response = self.service.videos().update(
+            part='snippet',
+            body={
+                'snippet': snippet,
+                'id': video_id
+            }
+        ).execute()
+        return response['snippet']
+
+
 old_ektoplazm_description = u'''Artist: {artist}
 Track: {track}
 Album: {album}
@@ -179,6 +207,12 @@ Track number: {trackno}
 Tags: {tags}
 License: {license}'''
 
+ektoplazm_description_without_tags = u'''Download the full album from Ektoplazm: {albumurl}
+
+Artist: {artist}
+Track: {track}
+Album: {album}
+Track number: {trackno}'''
 
 default_description = u'''Artist: {artist}
 Track: {track}
@@ -250,8 +284,86 @@ def ytupload(dirname, dry_run, secrets_file, url=None):
     playlist_id = youtube.create_playlist(playlist_title(meta), video_ids, tags=tag_list)
     return (playlist_id, video_ids)
 
+def parse_format(string, fmt, variables):
+    # create RE
+    fmt = re.escape(fmt)
+    for var in variables:
+        fmt = fmt.replace('\{'+var+'\}', '(?P<'+var+'>.*)')
+
+    # run RE on string
+    m = re.match(fmt, string)
+    if m:
+        return m.groupdict()
+
+    return None
+
+def ytdesc_process_album(youtube, urlmeta):
+    logger = logging.getLogger('ytdesc')
+    e = Ektoplazm(urlmeta.url)
+    urlmeta.tags = e.tags
+    try:
+        urlmeta.license = e.license.url
+    except SyntaxError:
+        logger.warning('No license link for {0}'.format(urlmeta.url))
+        urlmeta.license = urlmeta.url
+
+    def desc_fn(orig_desc):
+        vidmeta = parse_format(orig_desc, ektoplazm_description,
+                ['albumurl', 'artist', 'track', 'album', 'trackno', 'tags', 'license'])
+        if vidmeta:
+            logger.debug('Has new description, not updating')
+            return orig_desc
+
+        vidmeta = parse_format(orig_desc, old_ektoplazm_description,
+                ['albumurl', 'artist', 'track', 'album', 'trackno'])
+        if not vidmeta:
+            vidmeta = parse_format(orig_desc, ektoplazm_description_without_tags,
+                    ['albumurl', 'artist', 'track', 'album', 'trackno'])
+        assert vidmeta
+
+        vidmeta['tags'] = ', '.join(urlmeta.tags)
+        vidmeta['license'] = urlmeta.license
+
+        new_desc = ektoplazm_description.format(**vidmeta)
+        logger.debug(u'Old description:\n{0}'.format(orig_desc))
+        logger.debug(u'New description:\n{0}'.format(new_desc))
+        return new_desc
+
+    def tags_fn(ignored):
+        return ['ektoplazm', 'music'] + list(e.tags)
+
+    for video_id in urlmeta.youtube.videos:
+        logger.debug('Updating {0}'.format(video_id))
+        youtube.update_video(video_id, desc_fn, tags_fn)
+
+def ytdesc(yt_secrets, meta, dry_run=False):
+    logger = logging.getLogger('ytdesc')
+    youtube = YouTube(yt_secrets, dry_run)
+
+    for (url, urlmeta) in meta.urls.iteritems():
+        logger.info('Processing {0}'.format(url))
+        logger.debug('Playlist: {0}'.format(urlmeta.youtube.playlist))
+
+        if urlmeta.youtube.result == 'failed':
+            logger.debug('Skipping failed upload')
+            continue
+
+        if len(urlmeta.tags) != 0:
+            logger.debug('Tags present - skipping')
+            continue
+
+        ytdesc_process_album(youtube, urlmeta)
+        if not dry_run:
+            meta.save()
+
 if __name__ == '__main__':
-    import sys
+    import sys, json
+    from state import State
     logging.basicConfig(level=logging.DEBUG)
 
     youtube = YouTube('client_secrets.json')
+    meta = State('ektobot.json')
+    url = sys.argv[1]
+
+    ytdesc_process_album(youtube, meta.url(url, create=False))
+    meta.save()
