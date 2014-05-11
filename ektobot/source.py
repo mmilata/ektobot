@@ -135,7 +135,7 @@ class Ektoplazm(Source):
         return map(lambda h: h.string, h_tags)
 
     def get_license_link(self):
-        h_cc_link = self.soup('a', href=re.compile('http[s]?://creativecommons.org/'))
+        h_cc_link = self.soup('a', href=re.compile('http[s]?://(www.)?creativecommons.org/'))
         if len(h_cc_link) != 1:
             raise SyntaxError('Found {0} license links'
                               .format(len(h_cc_link)))
