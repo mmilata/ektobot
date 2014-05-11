@@ -5,6 +5,7 @@ import random
 import logging
 import os.path
 
+import urllib2
 import httplib
 import httplib2
 
@@ -299,7 +300,17 @@ def parse_format(string, fmt, variables):
 
 def ytdesc_process_album(youtube, urlmeta):
     logger = logging.getLogger('ytdesc')
-    e = Ektoplazm(urlmeta.url)
+
+    try:
+        e = Ektoplazm(urlmeta.url)
+    except urllib2.HTTPError as e:
+        if e.code == 502:
+            logger.warning('Bad gateway, trying again')
+            time.sleep(10)
+            e = Ektoplazm(urlmeta.url)
+        else
+            raise
+
     urlmeta.tags = e.tags
     try:
         urlmeta.license = e.license.url
