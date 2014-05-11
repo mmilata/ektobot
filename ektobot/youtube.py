@@ -308,7 +308,7 @@ def ytdesc_process_album(youtube, urlmeta):
             logger.warning('Bad gateway, trying again')
             time.sleep(10)
             e = Ektoplazm(urlmeta.url)
-        else
+        else:
             raise
 
     urlmeta.tags = e.tags
