@@ -125,8 +125,8 @@ class Ektoplazm(Source):
         # <span class="style">
         h_tag_span = self.soup('span', 'style')
         if len(h_tag_span) != 1:
-            raise SyntaxError('Found {0} tag spans'
-                              .format(len(h_tag_span)))
+            self.logger.warning(u'Found {0} tag spans, ignoring'.format(len(h_tag_span)))
+            return []
 
         h_tags = h_tag_span[0]('a')
         if len(h_tag_span) <= 0:
