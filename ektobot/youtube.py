@@ -140,6 +140,7 @@ class YouTube(object):
         if 'id' not in playlist_insert_response:
             self.logger.error(u'Failed to create playlist: {0}'.format(response))
         playlist_id = playlist_insert_response['id']
+        self.logger.debug(u'Playlist created, id: {0}'.format(playlist_id))
 
         for video_id in video_ids:
             insert_response = self.service.playlistItems().insert(
