@@ -12,7 +12,7 @@ zip_url1 = 'http://www.ektoplazm.com/files/Globular%20-%20Magnitudes%20Of%20Orde
 cc_by_nc_sa_3_url = 'http://creativecommons.org/licenses/by-nc-sa/3.0/'
 
 
-class TestConfig(unittest.TestCase):
+class TestSource(unittest.TestCase):
     def load_html(self, filename):
         html_file = os.path.dirname(__file__)
         html_file = os.path.join(html_file, 'data', filename)
@@ -25,8 +25,7 @@ class TestConfig(unittest.TestCase):
     def test_ektoplazm0(self):
         e = Ektoplazm(None, html_string='invalid html')
 
-        with self.assertRaises(SyntaxError):
-            e.tags
+        self.assertEqual(e.tags, set())
 
         with self.assertRaises(SyntaxError):
             e.archive_link
@@ -40,7 +39,7 @@ class TestConfig(unittest.TestCase):
 
         self.assertEqual(e.tags, set(['Downtempo', 'Psy Dub']))
         self.assertEqual(e.archive_link, zip_url1)
-        
+
         license = e.license
         self.assertEqual(license.url, cc_by_nc_sa_3_url)
         self.assertEqual(license.name, 'cc')
