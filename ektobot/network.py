@@ -39,7 +39,7 @@ def process_list(meta, listfile, dry_run, auth=None, keep=False, retry=False,
         urls = json.load(fh)
 
     for url in urls:
-        if not meta.is_processed(url):
+        if meta.is_processed(url):
             if retry and meta.url(url).youtube == 'failed':
                 logger.debug('Retrying previously failed url {0}'.format(url))
             else:
