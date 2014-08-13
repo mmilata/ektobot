@@ -169,8 +169,8 @@ def main(args):
             process_url(meta, opts.url, dry_run=opts.dry_run, auth=auth, keep=opts.keep_tempfiles,
                         subreddit=opts.reddit_sub, interactive=opts.interactive)
         elif opts.what == 'list':
-            process_list(opts.state_file, opts.urls, dry_run=opts.dry_run, auth=auth,
-                         keep=opts.keep_tempfiles, retry=opts.retry_failing)
+            process_list(meta, opts.urls, dry_run=opts.dry_run, auth=auth, keep=opts.keep_tempfiles,
+                        retry=opts.retry_failing, subreddit=opts.reddit_sub, interactive=opts.interactive)
         else:
             assert False
     except KeyboardInterrupt:
