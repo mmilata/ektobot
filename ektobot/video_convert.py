@@ -12,22 +12,29 @@ def find_cover(dirname):
     f_suffix = lambda f: (f.lower().endswith('.jpg') or f.lower().endswith('.png'))
     files = filter(f_suffix, files)
 
+    return os.path.join(dirname, find_cover_in_list(files))
+
+def find_cover_in_list(files):
+    files_wo_folder = set(files) - {'folder.jpg'}
+    if len(files_wo_folder) == 1:
+        return files_wo_folder.pop()
+
     patterns = [
-        r'^folder\.jpg$',
         r'^cover\....$',
         r'front\....$',
         r'image 1',
         r'cover',
         r'front',
+        r'^folder\.jpg$',
     ]
     for p in patterns:
         for f in files:
             if re.search(p, f, flags=re.IGNORECASE):
-                return os.path.join(dirname, f)
+                return f
 
     files.sort()
     if files:
-        return os.path.join(dirname, files[0])
+        return files[0]
 
     return None
 
