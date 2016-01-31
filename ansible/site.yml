@@ -1,0 +1,76 @@
+---
+- name: host setup
+  hosts: ektobot
+  tags: setup
+  tasks:
+  - name: create ektobot user
+    user: name=ektobot state=present
+
+  - name: install dependencies
+    yum: name={{ item }} state=present
+    with_items:
+    - tmux
+    - git
+    - vim
+    - psutils
+    - tree
+    - python-setuptools
+    - python-BeautifulSoup
+    - python-feedparser
+    - python-eyed3
+    - python-httplib2
+    - python-six
+    - python-simplejson
+
+  - name: enable epel
+    yum:
+      name: "http://download.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+      state: present
+
+  - name: import epel gpg key
+    rpm_key:
+      key: /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
+      state: present
+
+# i could not figure out how to run this under the ektobot user without ansible
+# trying to use sudo on local host
+- name: deploy development version of ektobot
+  hosts: ektobot
+  tags: deploy
+  tasks:
+  - name: sync remote ektobot repo
+    synchronize:
+      src: "{{ playbook_dir }}/../"
+      dest: "{{ repo_dir }}"
+      recursive: yes
+      links: yes
+      archive: no
+
+  - name: change repo ownership
+    file:
+      name: "{{ repo_dir }}"
+      state: directory
+      recurse: yes
+      owner: ektobot
+      group: ektobot
+
+- name: install git version
+  hosts: ektobot
+  tags: deploy
+  become: yes
+  become_user: ektobot
+  tasks:
+  - name: create configuration directory
+    file: name={{ config_dir }} state=directory
+
+  - name: create .ektobot symlink
+    file: src={{ config_dir }} dest=~/.ektobot state=link
+
+  - name: update config
+    template:
+      src: ektobot.cfg.j2
+      dest: "{{ config_dir }}/ektobot.cfg"
+      backup: yes
+
+  - name: run setup.py
+    command: python setup.py develop --user chdir={{ repo_dir }}
