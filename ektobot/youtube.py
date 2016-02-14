@@ -17,6 +17,7 @@ from apiclient.http import MediaFileUpload
 from oauth2client.file import Storage
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.tools import run_flow
+from oauth2client.clientsecrets import InvalidClientSecretsError
 
 from utils import *
 from source import Ektoplazm
@@ -46,9 +47,10 @@ class YouTube(object):
         try:
             flow = flow_from_clientsecrets(secrets_file,
                 scope='https://www.googleapis.com/auth/youtube')
-        except oauth2client.clientsecrets.InvalidClientSecretsError:
-            self.logger.error('Missing client secrets file {0}. '+
-                    'Please obtain it from https://console.developers.google.com/')
+        except InvalidClientSecretsError:
+            self.logger.error('Missing client secrets file %s. '+
+                    'Please obtain it from https://console.developers.google.com/',
+                    secrets_file)
             raise RuntimeError('Client secrets missing')
 
         storage = Storage('{0}-storage'.format(secrets_file))
