@@ -217,18 +217,25 @@ templates = {
 }
 
 def playlist_title(meta):
+    data = meta.copy()
+    data['tags'] = ','.join(data['tags'])
+
     formats_artist = [
+        u'{artist} - {album} ({year}) [{tags}]',
+        u'{artist} - {album} [{tags}]',
         u'{artist} - {album} ({year})',
         u'{artist} - {album}',
         u'{album}' ]
     formats_va = [
+        u'{album} ({year}) [{tags}]',
+        u'{album} [{tags}]',
         u'{album} ({year})',
         u'{album}' ]
 
-    formats = formats_va if meta['artist'] == 'VA' else formats_artist
+    formats = formats_va if data['artist'] == 'VA' else formats_artist
 
     for fmt in formats:
-        title = fmt.format(**meta)
+        title = fmt.format(**data)
         if len(title) <= 60:
             break
 
