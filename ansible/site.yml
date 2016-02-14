@@ -6,6 +6,16 @@
   - name: create ektobot user
     user: name=ektobot state=present
 
+  - name: enable third-party repos
+    yum:
+      name: "{{ item }}"
+      state: present
+    with_items:
+    - "http://download.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+    - "http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm"
+    tags:
+    - dependencies
+
   - name: install dependencies
     yum: name={{ item }} state=present
     with_items:
@@ -21,11 +31,9 @@
     - python-httplib2
     - python-six
     - python-simplejson
-
-  - name: enable epel
-    yum:
-      name: "http://download.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
-      state: present
+    - ffmpeg
+    tags:
+    - dependencies
 
   - name: import epel gpg key
     rpm_key:
@@ -69,7 +77,7 @@
   - name: update config
     template:
       src: ektobot.cfg.j2
-      dest: "{{ config_dir }}/ektobot.cfg"
+      dest: "{{ config_dir }}/config"
       backup: yes
 
   - name: run setup.py
